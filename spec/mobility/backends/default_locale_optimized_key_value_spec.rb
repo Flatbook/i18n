@@ -7,6 +7,18 @@ RSpec.describe Mobility::Backends::DefaultLocaleOptimizedKeyValue do
     I18n.default_locale = :en
     Mobility.configure do |config|
       config.default_backend = :default_locale_optimized_key_value
+      config.plugins = %i[
+        locale_optimized_query
+        cache
+        dirty
+        fallbacks
+        presence
+        default
+        attribute_methods
+        fallthrough_accessors
+        locale_accessors
+      ]
+      config.default_options[:locale_optimized_query] = true
     end
 
     class Post < ActiveRecord::Base
@@ -42,6 +54,33 @@ RSpec.describe Mobility::Backends::DefaultLocaleOptimizedKeyValue do
       I18n.locale = I18n.default_locale == :en ? :fr : :en
       expect(instance.content).to eq content
     end
+
+    context "when performing queries" do
+      it "results in default locale should be returned" do
+        p = Post.i18n.select(:id, :content).where(id: instance.id).first
+        expect(p.content).to eq content
+      end
+
+      context "for non-default locale" do
+        before do
+          I18n.locale = I18n.default_locale == :en ? :fr : :en
+        end
+
+        it "fallsback to default locale if no content in non-default locale" do
+          p = Post.i18n.select(:id, :content).where(id: instance.id).first
+          expect(p.content).to eq content
+        end
+
+        it "returns content in non-default locale when it exists" do
+          translated_content = "translated content"
+          instance.content = translated_content
+          instance.save!
+
+          p = Post.i18n.select(:content).where(id: instance.id).first
+          expect(p.content).to eq translated_content
+        end
+      end
+    end
   end
 
   context "if content is set in a non-default locale" do
@@ -67,6 +106,33 @@ RSpec.describe Mobility::Backends::DefaultLocaleOptimizedKeyValue do
     it "reads are empty for other locales since default locale is not set" do
       I18n.locale = I18n.locale == :fr ? :en : :fr
       expect(instance.content).to eq nil
+    end
+
+    context "when performing queries" do
+      it "results in non-default locale should be returned" do
+        p = Post.i18n.select(:id, :content).where(id: instance.id).first
+        expect(p.content).to eq content
+      end
+
+      context "for default locale" do
+        before do
+          I18n.locale = I18n.locale == :fr ? :en : :fr
+        end
+
+        it "no results are returned since default locale has no results." do
+          p = Post.i18n.select(:id, :content).where(id: instance.id).first
+          expect(p.content).to eq nil
+        end
+
+        it "returns content in default locale when it exists" do
+          translated_content = "default locale content"
+          instance.content = translated_content
+          instance.save!
+
+          p = Post.i18n.select(:content).where(id: instance.id).first
+          expect(p.content).to eq translated_content
+        end
+      end
     end
   end
 end
