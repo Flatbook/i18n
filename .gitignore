@@ -1,3 +1,6 @@
+/pkg/
+/.idea/
+
 *.rbc
 capybara-*.html
 .rspec
