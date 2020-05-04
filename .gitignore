@@ -1,5 +1,6 @@
 /pkg/
 /.idea/
+.rspec_status
 
 *.rbc
 capybara-*.html
