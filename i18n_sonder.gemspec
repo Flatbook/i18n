@@ -16,8 +16,10 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency 'mobility', '~> 0.8.9'
+  spec.add_dependency 'rest-client', '~> 2.0'
   spec.add_development_dependency 'rake', '~> 12.0'
   spec.add_development_dependency 'rspec', '~> 3.0'
   spec.add_development_dependency 'sqlite3', '~> 1.3', '>= 1.3.0'
-  spec.add_development_dependency "database_cleaner", '~> 1.7', '>= 1.7.0'
+  spec.add_development_dependency 'database_cleaner', '~> 1.7', '>= 1.7.0'
+  spec.add_development_dependency 'webmock'
 end
