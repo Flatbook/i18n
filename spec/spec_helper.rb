@@ -7,6 +7,9 @@ require "pry"
 require "database_cleaner"
 DatabaseCleaner.strategy = :transaction
 
+require 'webmock/rspec'
+WebMock.disable_net_connect!(:allow_localhost => true)
+
 ENV['RAILS_VERSION'] ||= "5.2"
 ActiveRecord::Base.establish_connection adapter: 'sqlite3', database: ':memory:'
 
