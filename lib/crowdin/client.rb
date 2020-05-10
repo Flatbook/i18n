@@ -44,8 +44,10 @@ module CrowdIn
     # Given a language, get the status of all the files uploaded
     # for translation.
     def language_status(language)
-      file_ids = files.map { |f| f['id'] }
-      file_ids.map { |f_id| file_status(f_id, language).merge('file_id' => f_id) }
+      files.map do |f|
+        file_id = f['id']
+        file_status(file_id, language).merge('file_id' => file_id)
+      end
     end
 
     # Given a CrowdIn file_id, and a language, export the contents of the translated files.
@@ -117,7 +119,13 @@ module CrowdIn
 
     # Assumes that the response is in JSON format
     def process_response(response)
-      body = JSON.load(response.body)
+      begin
+        body = JSON.load(response.body)
+      rescue
+        raise CrowdIn::Client::Errors::Error.new(
+            -1, "Could not parse response into JSON: #{response.body}"
+        )
+      end
 
       if body.key? 'error'
         raise CrowdIn::Client::Errors::Error.new(
