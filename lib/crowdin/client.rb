@@ -7,7 +7,6 @@ module CrowdIn
     # Configure it to always return responses in JSON format.
     def initialize(api_key:, project_id:, base_url: 'https://sonder.crowdin.com')
       @project_id = project_id
-      base_url = base_url
 
       options = {
           headers: {},
