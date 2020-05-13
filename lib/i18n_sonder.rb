@@ -1,10 +1,10 @@
-require "i18n_sonder/version"
-require "i18n_sonder/configuration"
-require "i18n_sonder/logger"
+require 'i18n_sonder/version'
+require 'i18n_sonder/configuration'
+require 'i18n_sonder/logger'
 require 'crowdin/adapter'
-require "mobility/backends/default_locale_optimized_key_value"
-require "mobility/plugins/locale_optimized_query"
-require "i18n_sonder/workers/sync_approved_translations_worker"
+require 'mobility/backends/default_locale_optimized_key_value'
+require 'mobility/plugins/locale_optimized_query'
+require 'i18n_sonder/workers/sync_approved_translations_worker'
 
 module I18nSonder
   class << self
