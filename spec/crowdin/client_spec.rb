@@ -5,7 +5,7 @@ RSpec.describe CrowdIn::Client do
   let(:project_id) { "project" }
   let(:language) { "fr" }
   let(:base_path) { "https://sonder.crowdin.com/api/v2/projects/#{project_id}" }
-  subject { described_class.new(api_key: api_key, project_id: "project")}
+  subject { described_class.new(api_key: api_key, project_id: project_id)}
 
   context "#files" do
     let(:response_string) { '{ "data": [ { "data": { "id": "123" } }, { "data": { "id": "234" } } ] }' }
