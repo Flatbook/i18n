@@ -4,7 +4,9 @@ require 'i18n_sonder/logger'
 require 'crowdin/adapter'
 require 'mobility/backends/default_locale_optimized_key_value'
 require 'mobility/plugins/locale_optimized_query'
+require 'mobility/plugins/upload_for_translation'
 require 'i18n_sonder/workers/sync_approved_translations_worker'
+require 'i18n_sonder/workers/upload_source_strings_worker'
 
 module I18nSonder
   class << self

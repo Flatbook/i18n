@@ -58,26 +58,62 @@ module CrowdIn
     def export_file(file_id, language)
       # This path returns a URL to follow to download the translated content
       path = "api/v2/projects/#{@project_id}/translations/builds/files/#{file_id}"
-      params = { targetLanguageId: language }
-      result = post_request(path, params)
+      body = { targetLanguageId: language }.to_json
+      result = post_request(path, body, content_type: :json)
 
       # Follow the content URL
-      unless result.is_a?(Hash) && result.key?('url')
-        raise CrowdIn::Client::Errors::Error.new(-1, "No URL given to follow to export file")
-      end
-
-      RestClient::Request.execute(method: :get, url: result['url']) do |r, _, _|
-        unless r.code == 200
-          raise CrowdIn::Client::Errors::Error.new(r.code, r.body.to_s)
-        end
-        JSON.load(r.body)
-      end
+      follow_url(result)
     end
 
     # Given a CrowdIn file_id, delete that file from CrowdIn.
     def delete_file(file_id)
       path = "api/v2/projects/#{@project_id}/files/#{file_id}"
       delete_request(path)
+    end
+
+    # Find the first file in CrowdIn whose name starts with given name.
+    # Return the files's id, if found, else return false.
+    def find_file_by_name(name)
+      file = files.find { |f| f['name'].start_with? name }
+      file.present? ? file['id'] : false
+    end
+
+    # Add a new file given file name and content.
+    # This first creates a storage object in CrowdIn, and then applies that
+    # storage to a new file.
+    def add_file(name, content)
+      storage = add_storage(name, content)
+
+      path = "api/v2/projects/#{@project_id}/files"
+      body = { storageId: storage['id'], name: storage['fileName'] }.to_json
+      post_request(path, body, content_type: :json)
+    end
+
+    def add_storage(name, content)
+      path = "api/v2/storages"
+      body = content.to_json
+      headers = { :"Crowdin-API-FileName" => name, content_type: :json }
+      post_request(path, body, headers)
+    end
+
+    # Given a CrowdIn, retrieve the contents of that file.
+    # Assumes that files being retrieved are in JSON format.
+    def download_source_file(file_id)
+      path = "api/v2/projects/#{@project_id}/files/#{file_id}/download"
+      result = post_request(path, {}, {})
+      follow_url(result)
+    end
+
+    # Add a new file given CrowdIn file id and content to update.
+    # This first creates a storage object in CrowdIn, and then applies that
+    # storage to an existing file. We keep the existing translations and approvals.
+    def update_file(file_id, content)
+      storage_name = "update_for_#{file_id}.json"
+      storage = add_storage(storage_name, content)
+
+      path = "api/v2/projects/#{@project_id}/files/#{file_id}"
+      body = { storageId: storage['id'], updateOption: "keep_translations_and_approvals" }.to_json
+      put_request(path, body, content_type: :json)
     end
 
     private
@@ -89,8 +125,8 @@ module CrowdIn
       end
     end
 
-    def post_request(path, params)
-      @connection[path].post(params.to_json, content_type: :json) do |response, _, _|
+    def post_request(path, params, headers)
+      @connection[path].post(params, headers) do |response, _, _|
         process_response(response)
       end
     end
@@ -100,6 +136,12 @@ module CrowdIn
         if response.code < 200 || response.code >= 300
           process_response(response)
         end
+      end
+    end
+
+    def put_request(path, params, headers)
+      @connection[path].put(params, headers) do |response, _, _|
+        process_response(response)
       end
     end
 
@@ -148,6 +190,19 @@ module CrowdIn
         body.key?('data') ? flatten_data_nodes(body['data']) : body
       else
         body
+      end
+    end
+
+    def follow_url(result)
+      unless result.is_a?(Hash) && result.key?('url')
+        raise CrowdIn::Client::Errors::Error.new(-1, "No URL given to follow to export file")
+      end
+
+      RestClient::Request.execute(method: :get, url: result['url']) do |r, _, _|
+        unless r.code == 200
+          raise CrowdIn::Client::Errors::Error.new(r.code, r.body.to_s)
+        end
+        JSON.load(r.body)
       end
     end
   end
