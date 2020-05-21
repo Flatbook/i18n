@@ -149,5 +149,103 @@ RSpec.describe CrowdIn::Adapter do
       expect(r.failure).to eq(CrowdIn::FileMethods::FilesError.new({file1_id => error.to_s }))
     end
   end
-end
 
+  context "#upload_attributes_to_translate" do
+    let(:object_type) { "Foo::Bar" }
+    let(:object_id) { "1" }
+    let(:updated_at) { "1234" }
+    let(:attributes) { { "field1" => "val 1. val 2.", "field2" => "val 3. val 4." } }
+    let(:content) { { object_type => { object_id => { updated_at => {
+        "field1" => "val 1. val 2.",
+        "field2" => [ "val 3.", "val 4." ]
+    } } } }.to_json }
+    let(:params) { { "field2" => { split_into_sentences: true } } }
+    let(:file_name) { "Foo_Bar-1.json" }
+
+    context "for a new object" do
+      it "adds a new file with content split by sentences according to params" do
+        expect(client).to receive(:find_file_by_name).with(file_name).and_return(false)
+        expect(client).to receive(:add_file).with(file_name, content).and_return(nil)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        expect(r.success).to be_nil
+        expect(r.failure).to be_nil
+      end
+
+      it "returns failures when adding file errors" do
+        expect(client).to receive(:find_file_by_name).with(file_name).and_return(false)
+        expect(client).to receive(:add_file).with(file_name, content).and_raise(error)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        expect(r.success).to be_nil
+        expect(r.failure).to eq error
+      end
+    end
+
+    context "for an object with existing CrowdIn file" do
+      it "updates existing CrowdIn file with expected content if current updated_at is greater than what exists" do
+        expect(client).to receive(:find_file_by_name).with(file_name).and_return(file1_id)
+        existing_content = { object_type => { object_id => { "1000" => {} } } }
+        expect(client).to receive(:download_source_file).with(file1_id).and_return(existing_content)
+        expect(client).to receive(:update_file).with(file1_id, content).and_return(nil)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        expect(r.success).to be_nil
+        expect(r.failure).to be_nil
+      end
+
+      it "does not update if current updated_at is same as what exists" do
+        expect(client).to receive(:find_file_by_name).with(file_name).and_return(file1_id)
+        existing_content = { object_type => { object_id => { updated_at => {} } } }
+        expect(client).to receive(:download_source_file).with(file1_id).and_return(existing_content)
+        expect(client).not_to receive(:update_file)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        expect(r.success).to be_nil
+        expect(r.failure).to be_nil
+      end
+
+      it "does not update if current updated_at is earlier than as what exists" do
+        expect(client).to receive(:find_file_by_name).with(file_name).and_return(file1_id)
+        existing_content = { object_type => { object_id => { "2000" => {} } } }
+        expect(client).to receive(:download_source_file).with(file1_id).and_return(existing_content)
+        expect(client).not_to receive(:update_file)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        expect(r.success).to be_nil
+        expect(r.failure).to be_nil
+      end
+
+      it "returns failures when downloading file errors" do
+        expect(client).to receive(:find_file_by_name).with(file_name).and_return(file1_id)
+        expect(client).to receive(:download_source_file).with(file1_id).and_raise(error)
+        expect(client).not_to receive(:update_file)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        expect(r.success).to be_nil
+        expect(r.failure).to eq error
+      end
+
+      it "returns failures when updating file errors" do
+        expect(client).to receive(:find_file_by_name).with(file_name).and_return(file1_id)
+        existing_content = { object_type => { object_id => { "1000" => {} } } }
+        expect(client).to receive(:download_source_file).with(file1_id).and_return(existing_content)
+        expect(client).to receive(:update_file).with(file1_id, content).and_raise(error)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        expect(r.success).to be_nil
+        expect(r.failure).to eq error
+      end
+    end
+
+    it "returns failures when finding file by name errors" do
+      expect(client).to receive(:find_file_by_name).with(file_name).and_raise(error)
+      expect(client).not_to receive(:add_file)
+      expect(client).not_to receive(:update_file)
+
+      r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+      expect(r.success).to be_nil
+      expect(r.failure).to eq error
+    end
+  end
+end

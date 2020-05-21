@@ -1,32 +1,6 @@
 require "spec_helper"
-require "mobility/backends/default_locale_optimized_key_value"
 
 RSpec.describe Mobility::Backends::DefaultLocaleOptimizedKeyValue do
-
-  before do
-    I18n.default_locale = :en
-    Mobility.configure do |config|
-      config.default_backend = :default_locale_optimized_key_value
-      config.plugins = %i[
-        locale_optimized_query
-        cache
-        dirty
-        fallbacks
-        presence
-        default
-        attribute_methods
-        fallthrough_accessors
-        locale_accessors
-      ]
-      config.default_options[:locale_optimized_query] = true
-    end
-
-    class Post < ActiveRecord::Base
-      extend Mobility
-      translates :title, type: :string
-      translates :content, type: :text, fallbacks: { fr: :en }
-    end
-  end
 
   let(:instance) { Post.new(title: "T1", content: "some content", published: true) }
 

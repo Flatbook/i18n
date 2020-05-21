@@ -69,3 +69,27 @@ end
 
 ActiveRecord::Migration.verbose = false
 TestSchema.up
+
+Mobility.configure do |config|
+  config.default_backend = :default_locale_optimized_key_value
+  config.plugins = %i[
+        locale_optimized_query
+        cache
+        dirty
+        fallbacks
+        presence
+        default
+        attribute_methods
+        fallthrough_accessors
+        locale_accessors
+        upload_for_translation
+      ]
+  config.default_options[:locale_optimized_query] = true
+  config.default_options[:upload_for_translation] = true
+end
+
+class Post < ActiveRecord::Base
+  extend Mobility
+  translates :title, type: :string
+  translates :content, type: :text, fallbacks: { fr: :en }, upload_for_translation: { split_sentences: false }
+end

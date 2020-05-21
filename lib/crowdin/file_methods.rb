@@ -15,6 +15,12 @@ module CrowdIn
       failed_files.empty? ? nil : FilesError.new(failed_files)
     end
 
+    def file_name(object_type, object_id)
+      sanitized_object_type = object_type.gsub(/::/, '_')
+      base_name = [sanitized_object_type, object_id].join('-')
+      base_name + ".json"
+    end
+
     class FilesError < StandardError
       attr_accessor :errors_by_file
 
