@@ -16,6 +16,7 @@ RSpec.describe Mobility::Plugins::UploadForTranslation do
     )
     instance.save!
   end
+
   it "calls async worker with correct params and delay on update" do
     # worker will be called twice on creation, and then once on update
     expect(worker_class_mock).to(
@@ -23,5 +24,17 @@ RSpec.describe Mobility::Plugins::UploadForTranslation do
     )
     instance.save!
     instance.update!(content: "new content")
+  end
+
+  context "when writing in non-default locale" do
+    before do
+      I18n.locale = :fr
+      I18n.default_locale = :en
+    end
+
+    it "should be a no-op" do
+      expect(worker_class_mock).not_to receive(:perform_in)
+      instance.save!
+    end
   end
 end
