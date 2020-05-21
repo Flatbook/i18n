@@ -120,11 +120,11 @@ module CrowdIn
 
     def file_content_for_translations(object_type, object_id, updated_at, attributes, attribute_params)
       attributes_to_translate = attributes.inject({}) do |final_hash, (attribute_key, attribute_value)|
-        if attribute_params.dig(attribute_key, :split_into_sentences) === false
+        if attribute_params.dig(attribute_key, :split_into_sentences) === true
+          final_hash.merge(split_into_sentences(attribute_key => attribute_value))
+        else
           final_hash[attribute_key] = attribute_value
           final_hash
-        else
-          final_hash.merge(split_into_sentences(attribute_key => attribute_value))
         end
       end
 

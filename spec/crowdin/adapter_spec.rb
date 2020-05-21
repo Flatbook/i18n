@@ -159,7 +159,7 @@ RSpec.describe CrowdIn::Adapter do
         "field1" => "val 1. val 2.",
         "field2" => [ "val 3.", "val 4." ]
     } } } }.to_json }
-    let(:params) { { "field1" => { split_into_sentences: false } } }
+    let(:params) { { "field2" => { split_into_sentences: true } } }
     let(:file_name) { "Foo_Bar-1.json" }
 
     context "for a new object" do

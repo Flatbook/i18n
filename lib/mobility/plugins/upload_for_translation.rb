@@ -11,7 +11,7 @@ module Mobility
         end
       end
 
-      UPLOAD_TRANSLATION_DELAY = 5.minutes
+      UPLOAD_TRANSLATION_DELAY = (ENV["UPLOAD_FOR_TRANSLATION_DELAY_MIN"] || 5).minutes
 
       def write(locale, value, options = {})
         # Get translated attributes, and each attribute's params for uploading translations
