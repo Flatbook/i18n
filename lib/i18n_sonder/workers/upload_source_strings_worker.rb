@@ -24,12 +24,12 @@ module I18nSonder
         klass = object_type.constantize
         object = klass.find(object_id)
         if object.present?
-          updated_at = object.updated_at
+          updated_at = object.updated_at.to_i
           attributes_to_translate = object.attributes.slice(*translated_attribute_params.keys)
 
           @logger.info("Uploading attributes to translate for #{object_type} #{object_id}")
           result = @localization_provider.upload_attributes_to_translate(
-              object_type, object_id.to_s, updated_at.to_s, attributes_to_translate, translated_attribute_params
+              object_type, object_id.to_s, updated_at, attributes_to_translate, translated_attribute_params
           )
           handle_failure(result.failure)
         else

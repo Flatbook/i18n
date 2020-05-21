@@ -126,7 +126,7 @@ RSpec.describe CrowdIn::Client do
 
     context "#download_source_file" do
       before do
-        stub_request(:post, "#{base_path}/files/#{file_id}/download")
+        stub_request(:get, "#{base_path}/files/#{file_id}/download")
             .to_return(body: build_response_string, status: 200)
       end
 
@@ -136,7 +136,7 @@ RSpec.describe CrowdIn::Client do
       end
 
       it "raises error when no url given by build response" do
-        stub_request(:post, "#{base_path}/files/#{file_id}/download")
+        stub_request(:get, "#{base_path}/files/#{file_id}/download")
             .to_return(body: '{ "data": {} }', status: 200)
         msg = "-1: No URL given to follow to export file"
         expect { subject.download_source_file(file_id) }.to raise_error(CrowdIn::Client::Errors::Error, msg)
@@ -215,7 +215,7 @@ RSpec.describe CrowdIn::Client do
     before do
       stub_request(:post, "https://sonder.crowdin.com/api/v2/storages")
           .with(
-              headers: { "Crowdin-API-FileName" => name, "Content-Type" => "application/json" },
+              headers: { "Crowdin-API-FileName" => name },
               body: content
           )
           .to_return(body: response_string, status: storage_response_status)

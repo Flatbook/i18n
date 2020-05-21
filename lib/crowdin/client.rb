@@ -91,7 +91,7 @@ module CrowdIn
 
     def add_storage(name, content)
       path = "api/v2/storages"
-      body = content.to_json
+      body = content
       headers = { :"Crowdin-API-FileName" => name, content_type: :json }
       post_request(path, body, headers)
     end
@@ -100,7 +100,7 @@ module CrowdIn
     # Assumes that files being retrieved are in JSON format.
     def download_source_file(file_id)
       path = "api/v2/projects/#{@project_id}/files/#{file_id}/download"
-      result = post_request(path, {}, {})
+      result = get_request(path, {})
       follow_url(result)
     end
 

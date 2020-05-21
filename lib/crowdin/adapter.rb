@@ -44,7 +44,7 @@ module CrowdIn
           attributes = @client.download_source_file(file_id)
           attributes_by_updated = attributes.dig(object_type, object_id)
 
-          # we don't need to update the attributes if there are attributes for a later updated_at timestamp
+          # we don't need to update the attributes if there are attributes for the same or later updated_at timestamp
           latest_already_exists = attributes_by_updated.select { |u, _| u.to_i >= updated_at.to_i }.present?
 
           @client.update_file(file_id, file_content) unless latest_already_exists

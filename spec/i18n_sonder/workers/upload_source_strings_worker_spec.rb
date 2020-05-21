@@ -37,7 +37,7 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
       expect(model_instance).to receive(:attributes).and_return(attributes)
       expect(adapter).to(
           receive(:upload_attributes_to_translate)
-              .with(type, id.to_s, updated.to_s, attributes_to_translate, attribute_params)
+              .with(type, id.to_s, updated, attributes_to_translate, attribute_params)
               .and_return(upload_response)
       )
       expect(logger).to receive(:info).exactly(1).times
@@ -66,7 +66,7 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
         expect(model_instance).to receive(:attributes).and_return(attributes)
         expect(adapter).to(
             receive(:upload_attributes_to_translate)
-                .with(type, id.to_s, updated.to_s, attributes_to_translate, attribute_params)
+                .with(type, id.to_s, updated, attributes_to_translate, attribute_params)
                 .and_return(upload_response)
         )
 
