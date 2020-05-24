@@ -35,7 +35,7 @@ module CrowdIn
       # Find the CrowdIn File corresponding to object.
       begin
         file_name = file_name(object_type, object_id)
-        file_base_name = File.basename(file_name)
+        file_base_name = File.basename(file_name, ".*")
         file_id = @client.find_file_by_name(file_base_name)
         file_content = file_content_for_translations(object_type, object_id, updated_at, attributes, attribute_params)
 
@@ -84,13 +84,7 @@ module CrowdIn
         approved_file_ids = file_status_list.select { |f| f['approvalProgress'] == 100 }.map { |f| f['file_id'] }
 
         # Fetch translations for each approved file
-        to_return = translations_for_files(approved_file_ids, language)
-        if to_return.failure.present? && to_return.failure.is_a?(CrowdIn::FileMethods::FilesError)
-          @files_to_cleanup = approved_file_ids - to_return.failure.errors_by_file.keys
-        else
-          @files_to_cleanup = approved_file_ids
-        end
-        to_return
+        translations_for_files(approved_file_ids, language)
       end
     end
 
@@ -98,13 +92,26 @@ module CrowdIn
       translations_for_files([file_id], language)
     end
 
-    # Delete all the approved translation files, stored in @approved_files.
-    # This should be called after we successfully persist the approved translations.
+    # Given a hash of objects that have been successfully sync'd, and all the +available_locales+,
+    # delete all the source files that have successfully been sync'd in every locale.
     #
     # Returns +CrowdIn::FileMethods::FilesError+ with failed files for those that fail deletion.
-    def cleanup_translations
-      if @files_to_cleanup.present?
-        failed_files = safe_file_iteration(@files_to_cleanup) { |file_id| @client.delete_file(file_id) }
+    def cleanup_translations(objects_syncd, available_locales)
+      sorted_languages = available_locales.sort
+      files_to_cleanup = []
+
+      objects_syncd.each do |model_name, successful_languages_by_id|
+        successful_languages_by_id.each do |id, successful_languages|
+          if sorted_languages == successful_languages.sort
+            file_name = file_name(model_name, id)
+            file_base_name = File.basename(file_name, ".*")
+            files_to_cleanup.append(@client.find_file_by_name(file_base_name))
+          end
+        end
+      end
+
+      if files_to_cleanup.present?
+        failed_files = safe_file_iteration(files_to_cleanup) { |file_id| @client.delete_file(file_id) }
       else
         failed_files = nil
       end

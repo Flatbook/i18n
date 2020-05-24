@@ -11,8 +11,10 @@ module I18nSonder
       end
 
       def perform
+        successful_syncs = {}
         # Iterate through each language we need to sync
-        I18n.available_locales.reject { |l| l == I18n.default_locale }.each do |language|
+        languages_to_translate = I18n.available_locales.reject { |l| l == I18n.default_locale }
+        languages_to_translate.each do |language|
           @logger.info("Fetching translations for #{language}")
           # Fetch translations in the following format
           # {
@@ -29,15 +31,17 @@ module I18nSonder
 
           begin
             write_translations(translations_by_model_and_id, language)
-
-            # Cleanup translations only if they have been successfully persisted
-            @logger.info("Cleaning up translations for #{language}")
-            cleanup_result = @localization_provider.cleanup_translations
-            handle_failure(cleanup_result.failure)
           rescue => e
             handle_failure(e)
+          else
+            # All translations were written successfully in this language
+            successful_syncs = process_successful_syncs(translations_by_model_and_id, language, successful_syncs)
           end
         end
+
+        @logger.info("Cleaning up translations")
+        cleanup_result = @localization_provider.cleanup_translations(successful_syncs, languages_to_translate)
+        handle_failure(cleanup_result.failure)
       end
 
       # Update attributes in given language
@@ -51,6 +55,21 @@ module I18nSonder
             end
           end
         end
+      end
+
+      def process_successful_syncs(translations_by_model_and_id, language, successful_syncs)
+        translations_by_model_and_id.each do |model_name, ids|
+          ids.keys.each do |id|
+            if successful_syncs.dig(model_name, id)
+              successful_syncs[model_name][id].append(language)
+            elsif successful_syncs.key? model_name
+              successful_syncs[model_name][id] = [language]
+            else
+              successful_syncs[model_name] = { id => [language] }
+            end
+          end
+        end
+        successful_syncs
       end
 
       def handle_failure(exception)

@@ -37,6 +37,32 @@ RSpec.describe CrowdIn::Client do
         expect(subject.files).to eq response
       end
     end
+
+    context "with caching" do
+      let(:connection) { instance_double(RestClient::Resource) }
+
+      before do
+        subject.instance_variable_set(:@connection, connection)
+      end
+
+      it "uses cached results on subsequent calls" do
+        expect(connection).to receive(:options).exactly(:once).and_return({ params: {} })
+        expect(connection).to receive(:[]).exactly(:once).and_return(connection)
+        expect(connection).to receive(:get).exactly(:once).and_return(response)
+        # call #files twice and expect get request only once
+        expect(subject.files).to eq response
+        expect(subject.files).to eq response
+      end
+
+      it "fetches from CrowdIn if hard_fetch is requested" do
+        expect(connection).to receive(:options).exactly(:twice).and_return({ params: {} })
+        expect(connection).to receive(:[]).exactly(:twice).and_return(connection)
+        expect(connection).to receive(:get).exactly(:twice).and_return(response)
+        # call #files twice and expect get request twice with hard_fetch option
+        expect(subject.files(hard_fetch = true)).to eq response
+        expect(subject.files(hard_fetch = true)).to eq response
+      end
+    end
   end
 
   context "#file_status" do
