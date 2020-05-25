@@ -21,12 +21,17 @@ module CrowdIn
 
       RestClient.proxy = ENV['http_proxy'] if ENV['http_proxy']
       @connection = RestClient::Resource.new(base_url, options)
+
+      @files_cache = {}
     end
 
     # Get metadata for all files in a project
-    def files
-      path = "api/v2/projects/#{@project_id}/files"
-      with_pagination { |params| get_request(path, params) }
+    def files(hard_fetch = false)
+      if @files_cache.empty? || hard_fetch
+        path = "api/v2/projects/#{@project_id}/files"
+        @files_cache = with_pagination { |params| get_request(path, params) }
+      end
+      @files_cache
     end
 
     # Get the translation progress for a given file.
