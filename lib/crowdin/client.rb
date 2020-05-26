@@ -51,8 +51,8 @@ module CrowdIn
     def language_status(language)
       files.map do |f|
         file_id = f['id']
-        file_status(file_id, language).merge('file_id' => file_id)
-      end
+        file_status(file_id, language)&.merge('file_id' => file_id)
+      end.compact
     end
 
     # Given a CrowdIn file_id, and a language, export the contents of the translated files.

@@ -94,7 +94,7 @@ RSpec.describe I18nSonder::Workers::SyncApprovedTranslationsWorker do
 
         expect(adapter).to receive(:cleanup_translations).with({}, [:fr]).and_return(cleanup_response)
         allow(logger).to receive(:info)
-        expect(logger).to receive(:error).with(error).exactly(1).times
+        expect(logger).to receive(:error).with("[I18nSonder::SyncApprovedTranslationsWorker] #{error}").exactly(1).times
         subject.perform
       end
     end
@@ -107,7 +107,7 @@ RSpec.describe I18nSonder::Workers::SyncApprovedTranslationsWorker do
         expect(another_model).to receive(:update!).with('4', translations['AnotherModel']['4'])
         expect(adapter).to receive(:cleanup_translations).and_return(CrowdIn::Adapter::ReturnObject.new(nil, error))
         expect(logger).to receive(:info).exactly(5).times
-        expect(logger).to receive(:error).with(error).exactly(1).times
+        expect(logger).to receive(:error).with("[I18nSonder::SyncApprovedTranslationsWorker] #{error}").exactly(1).times
         subject.perform
       end
     end

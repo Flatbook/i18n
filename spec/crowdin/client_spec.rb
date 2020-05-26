@@ -109,6 +109,10 @@ RSpec.describe CrowdIn::Client do
       expected_response = [ { "file_id" => file1_id, "languageId" => "fr" }, { "file_id" => file2_id, "languageId" => "fr" } ]
       expect(subject.language_status(language)).to eq expected_response
     end
+
+    it "returns empty result for language that doesn't exist" do
+      expect(subject.language_status("bad_lang")).to eq []
+    end
   end
 
   context "methods that export content" do
