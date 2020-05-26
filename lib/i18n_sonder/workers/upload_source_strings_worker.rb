@@ -6,6 +6,8 @@ module I18nSonder
     class UploadSourceStringsWorker
       include Sidekiq::Worker
 
+      sidekiq_options retry: 2
+
       def initialize
         @localization_provider = I18nSonder.localization_provider
         @logger = I18nSonder.logger
@@ -27,19 +29,19 @@ module I18nSonder
           updated_at = object.updated_at.to_i
           attributes_to_translate = object.attributes.slice(*translated_attribute_params.keys)
 
-          @logger.info("Uploading attributes to translate for #{object_type} #{object_id}")
+          @logger.info("[I18nSonder::UploadSourceStringsWorker] Uploading attributes to translate for #{object_type} #{object_id}")
           result = @localization_provider.upload_attributes_to_translate(
               object_type, object_id.to_s, updated_at, attributes_to_translate, translated_attribute_params
           )
           handle_failure(result.failure)
         else
-          @logger.error("Can't find #{object_type} #{object_id} to send for translation")
+          @logger.error("[I18nSonder::UploadSourceStringsWorker] Can't find #{object_type} #{object_id} to send for translation")
         end
       end
 
       def handle_failure(exception)
         if exception.is_a? Exception
-          @logger.error(exception)
+          @logger.error("[I18nSonder::UploadSourceStringsWorker] #{exception}")
         end
       end
     end

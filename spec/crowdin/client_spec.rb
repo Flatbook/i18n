@@ -59,7 +59,7 @@ RSpec.describe CrowdIn::Client do
         expect(connection).to receive(:[]).exactly(:twice).and_return(connection)
         expect(connection).to receive(:get).exactly(:twice).and_return(response)
         # call #files twice and expect get request twice with hard_fetch option
-        expect(subject.files(hard_fetch = true)).to eq response
+        expect(subject.files).to eq response
         expect(subject.files(hard_fetch = true)).to eq response
       end
     end
@@ -68,6 +68,7 @@ RSpec.describe CrowdIn::Client do
   context "#file_status" do
     let(:file_id) { "123" }
     let(:response_string) { '{ "data": [ { "data": { "languageId": "fr" } }, { "data": { "languageId": "es" } } ] }' }
+    let(:response) { [ { "languageId" => "fr" }, { "languageId" => "es" } ] }
 
     before do
       stub_request(:get, "#{base_path}/files/#{file_id}/languages/progress")
@@ -75,7 +76,7 @@ RSpec.describe CrowdIn::Client do
     end
 
     it "returns all language status when no language param specified" do
-      expect(subject.file_status(file_id)).to eq [ { "languageId" => "fr" }, { "languageId" => "es" } ]
+      expect(subject.file_status(file_id)).to eq response
     end
 
     it "returns expected response if expected language exists" do
@@ -84,6 +85,32 @@ RSpec.describe CrowdIn::Client do
 
     it "returns expected response if expected language doesn't exists" do
       expect(subject.file_status(file_id, "blah")).to eq nil
+    end
+
+    context "with caching" do
+      let(:connection) { instance_double(RestClient::Resource) }
+
+      before do
+        subject.instance_variable_set(:@connection, connection)
+      end
+
+      it "uses cached results on subsequent calls" do
+        expect(connection).to receive(:options).exactly(:once).and_return({ params: {} })
+        expect(connection).to receive(:[]).exactly(:once).and_return(connection)
+        expect(connection).to receive(:get).exactly(:once).and_return(response)
+        # call #files_status twice with different languages and expect get request only once
+        expect(subject.file_status(file_id, "fr")).to eq( { "languageId" => "fr" } )
+        expect(subject.file_status(file_id, "es")).to eq( { "languageId" => "es" } )
+      end
+
+      it "fetches from CrowdIn if hard_fetch is requested" do
+        expect(connection).to receive(:options).exactly(:twice).and_return({ params: {} })
+        expect(connection).to receive(:[]).exactly(:twice).and_return(connection)
+        expect(connection).to receive(:get).exactly(:twice).and_return(response)
+        # call #files_status twice and expect get request twice with hard_fetch option
+        expect(subject.file_status(file_id, "fr")).to eq( { "languageId" => "fr" } )
+        expect(subject.file_status(file_id, "fr", hard_fetch = true)).to eq( { "languageId" => "fr" } )
+      end
     end
   end
 
@@ -108,6 +135,10 @@ RSpec.describe CrowdIn::Client do
     it "returns expected response" do
       expected_response = [ { "file_id" => file1_id, "languageId" => "fr" }, { "file_id" => file2_id, "languageId" => "fr" } ]
       expect(subject.language_status(language)).to eq expected_response
+    end
+
+    it "returns empty result for language that doesn't exist" do
+      expect(subject.language_status("bad_lang")).to eq []
     end
   end
 

@@ -5,6 +5,8 @@ module I18nSonder
     class SyncApprovedTranslationsWorker
       include Sidekiq::Worker
 
+      sidekiq_options retry: 2
+
       def initialize
         @localization_provider = I18nSonder.localization_provider
         @logger = I18nSonder.logger
@@ -15,7 +17,7 @@ module I18nSonder
         # Iterate through each language we need to sync
         languages_to_translate = I18n.available_locales.reject { |l| l == I18n.default_locale }
         languages_to_translate.each do |language|
-          @logger.info("Fetching translations for #{language}")
+          @logger.info("[I18nSonder::SyncApprovedTranslationsWorker] Fetching translations for #{language}")
           # Fetch translations in the following format
           # {
           #   model: {
@@ -39,7 +41,7 @@ module I18nSonder
           end
         end
 
-        @logger.info("Cleaning up translations")
+        @logger.info("[I18nSonder::SyncApprovedTranslationsWorker] Cleaning up translations")
         cleanup_result = @localization_provider.cleanup_translations(successful_syncs, languages_to_translate)
         handle_failure(cleanup_result.failure)
       end
@@ -49,7 +51,7 @@ module I18nSonder
         # Write these translations to DB
         translations_by_model_and_id.each do |model_name, translations_by_id|
           translations_by_id.each do |id, translations|
-            @logger.info("Writing translations for #{model_name} #{id} in #{language}")
+            @logger.info("[I18nSonder::SyncApprovedTranslationsWorker] Writing translations for #{model_name} #{id} in #{language}")
             Mobility.with_locale(language) do
               model_name.constantize.update!(id, translations)
             end
@@ -74,7 +76,7 @@ module I18nSonder
 
       def handle_failure(exception)
         if exception.is_a? Exception
-          @logger.error(exception)
+          @logger.error("[I18nSonder::SyncApprovedTranslationsWorker] #{exception}")
         end
       end
     end
