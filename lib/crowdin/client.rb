@@ -23,6 +23,7 @@ module CrowdIn
       @connection = RestClient::Resource.new(base_url, options)
 
       @files_cache = {}
+      @files_status_cache = {}
     end
 
     # Get metadata for all files in a project
@@ -37,12 +38,16 @@ module CrowdIn
     # Get the translation progress for a given file.
     # If no language provided, then statuses for each languages: Array[translation_progress].
     # If specified language isn't found, returns nil.
-    def file_status(file_id, language = nil)
-      path = "api/v2/projects/#{@project_id}/files/#{file_id}/languages/progress"
+    def file_status(file_id, language = nil, hard_fetch = false)
+      if !@files_status_cache.key?(file_id) || hard_fetch
+        path = "api/v2/projects/#{@project_id}/files/#{file_id}/languages/progress"
+        @files_status_cache[file_id] = get_request(path)
+      end
+
       if language.nil?
-        get_request(path)
+        @files_status_cache[file_id]
       else
-        get_request(path).find { |s| s['languageId'] == language }
+        @files_status_cache[file_id].find { |s| s['languageId'] == language }
       end
     end
 
