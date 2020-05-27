@@ -9,7 +9,6 @@ RSpec.describe I18nSonder::Workers::SyncApprovedTranslationsWorker do
 
   subject do
     described_class.new.tap do |s|
-      s.instance_variable_set(:@localization_provider, adapter)
       s.instance_variable_set(:@logger, logger)
     end
   end
@@ -36,6 +35,7 @@ RSpec.describe I18nSonder::Workers::SyncApprovedTranslationsWorker do
     before do
       I18n.available_locales = [:en, :fr]
       I18n.default_locale = :en
+      expect(I18nSonder).to receive(:localization_provider).and_return(adapter)
     end
 
     it "fetches translations, writes them to the DB, and then cleans up successful syncs" do

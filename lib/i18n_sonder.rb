@@ -22,8 +22,9 @@ module I18nSonder
       @logger ||= Logger.new
     end
 
+    # Returns a new CrowdIn Adapter with a new CrowdIn Client.
     def localization_provider
-      @localization_provider ||= CrowdIn::Adapter.new(
+      CrowdIn::Adapter.new(
           CrowdIn::Client.new(
               api_key: I18nSonder.configuration.crowdin_api_key,
               project_id: I18nSonder.configuration.crowdin_project_id
