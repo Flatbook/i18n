@@ -53,7 +53,7 @@ module I18nSonder
           translations_by_id.each do |id, translations|
             @logger.info("[I18nSonder::SyncApprovedTranslationsWorker] Writing translations for #{model_name} #{id} in #{language}")
             Mobility.with_locale(language) do
-              model_name.constantize.update!(id, translations)
+              model_name.constantize.update(id, translations)
             end
           end
         end
