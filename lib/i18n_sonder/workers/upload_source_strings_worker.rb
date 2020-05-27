@@ -9,7 +9,6 @@ module I18nSonder
       sidekiq_options retry: 2
 
       def initialize
-        @localization_provider = I18nSonder.localization_provider
         @logger = I18nSonder.logger
       end
 
@@ -22,6 +21,8 @@ module I18nSonder
       # +translated_attribute_params+ hash. The value in this hash is any relevant params on how
       # to upload these source strings for translations. The value can be empty for default values.
       def perform(object_type, object_id, translated_attribute_params)
+        localization_provider = I18nSonder.localization_provider
+
         # Find the object and all its localized attributes
         klass = object_type.constantize
         object = klass.find(object_id)
@@ -30,7 +31,7 @@ module I18nSonder
           attributes_to_translate = object.attributes.slice(*translated_attribute_params.keys)
 
           @logger.info("[I18nSonder::UploadSourceStringsWorker] Uploading attributes to translate for #{object_type} #{object_id}")
-          result = @localization_provider.upload_attributes_to_translate(
+          result = localization_provider.upload_attributes_to_translate(
               object_type, object_id.to_s, updated_at, attributes_to_translate, translated_attribute_params
           )
           handle_failure(result.failure)

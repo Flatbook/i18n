@@ -9,7 +9,6 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
 
   subject do
     described_class.new.tap do |s|
-      s.instance_variable_set(:@localization_provider, adapter)
       s.instance_variable_set(:@logger, logger)
     end
   end
@@ -30,6 +29,10 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
 
   context "#perform" do
     let(:upload_response) { CrowdIn::Adapter::ReturnObject.new(nil, nil) }
+
+    before do
+      expect(I18nSonder).to receive(:localization_provider).and_return(adapter)
+    end
 
     it "fetches translations, writes them to the DB, and then cleans them up" do
       expect(model).to receive(:find).with(id).and_return(model_instance)

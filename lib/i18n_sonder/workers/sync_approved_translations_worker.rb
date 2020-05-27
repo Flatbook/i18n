@@ -8,11 +8,12 @@ module I18nSonder
       sidekiq_options retry: 2
 
       def initialize
-        @localization_provider = I18nSonder.localization_provider
         @logger = I18nSonder.logger
       end
 
       def perform
+        localization_provider = I18nSonder.localization_provider
+
         successful_syncs = {}
         # Iterate through each language we need to sync
         languages_to_translate = I18n.available_locales.reject { |l| l == I18n.default_locale }
@@ -27,7 +28,7 @@ module I18nSonder
           #     }
           #   }
           # }
-          translation_result = @localization_provider.translations(language.to_s)
+          translation_result = localization_provider.translations(language.to_s)
           translations_by_model_and_id = translation_result.success
           handle_failure(translation_result.failure)
 
@@ -42,7 +43,7 @@ module I18nSonder
         end
 
         @logger.info("[I18nSonder::SyncApprovedTranslationsWorker] Cleaning up translations")
-        cleanup_result = @localization_provider.cleanup_translations(successful_syncs, languages_to_translate)
+        cleanup_result = localization_provider.cleanup_translations(successful_syncs, languages_to_translate)
         handle_failure(cleanup_result.failure)
       end
 
