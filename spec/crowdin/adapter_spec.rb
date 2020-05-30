@@ -206,6 +206,17 @@ RSpec.describe CrowdIn::Adapter do
         expect(r.failure).to be_nil
       end
 
+      it "does not update if object not found in source file" do
+        existing_content = { object_type => { "other_object_id" => { "1000" => {} } } }
+        expect(client).to receive(:download_source_file).with(file1_id).and_return(existing_content)
+        expect(client).not_to receive(:update_file)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        expect(r.success).to be_nil
+        expected_error = CrowdIn::FileMethods::FilesError.new({ file1_id => "Could not find #{object_type} #{object_id}" })
+        expect(r.failure).to eq expected_error
+      end
+
       it "returns failures when downloading file errors" do
         expect(client).to receive(:download_source_file).with(file1_id).and_raise(error)
         expect(client).not_to receive(:update_file)

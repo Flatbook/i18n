@@ -33,6 +33,7 @@ module CrowdIn
     # The returned +ReturnObject.success+ is +nil+ regardless of success/failure.
     def upload_attributes_to_translate(object_type, object_id, updated_at, attributes, attribute_params)
       # Find the CrowdIn File corresponding to object.
+      to_return = ReturnObject.new(nil, nil)
       begin
         file_name = file_name(object_type, object_id)
         file_base_name = File.basename(file_name, ".*")
@@ -44,10 +45,15 @@ module CrowdIn
           attributes = @client.download_source_file(file_id)
           attributes_by_updated = attributes.dig(object_type, object_id)
 
-          # we don't need to update the attributes if there are attributes for the same or later updated_at timestamp
-          latest_already_exists = attributes_by_updated.select { |u, _| u.to_i >= updated_at.to_i }.present?
+          if attributes_by_updated.present?
+            # we don't need to update the attributes if there are attributes for the same or later updated_at timestamp
+            latest_already_exists = attributes_by_updated.select { |u, _| u.to_i >= updated_at.to_i }.present?
 
-          @client.update_file(file_id, file_content) unless latest_already_exists
+            @client.update_file(file_id, file_content) unless latest_already_exists
+          else
+            e = CrowdIn::FileMethods::FilesError.new({ file_id => "Could not find #{object_type} #{object_id}" })
+            to_return.failure = e
+          end
         else
           # If file doesn't exist for object, create it with attributes to translate
           @client.add_file(file_name, file_content)
@@ -55,7 +61,7 @@ module CrowdIn
       rescue CrowdIn::Client::Errors::Error => e
         ReturnObject.new(nil, e)
       else
-        ReturnObject.new(nil, nil)
+        to_return
       end
     end
 

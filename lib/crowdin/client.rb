@@ -81,10 +81,13 @@ module CrowdIn
       delete_request(path)
     end
 
-    # Find the first file in CrowdIn whose name starts with given name.
+    # Find the first file in CrowdIn whose basename is equal to the given name.
+    # The +name+ argument must be the basename of the file, e.g. "File_123.json"'s
+    # basename is "File_123".
+    #
     # Return the files's id, if found, else return false.
     def find_file_by_name(name)
-      file = files.find { |f| f['name'].start_with? name }
+      file = files.find { |f| name == File.basename(f['name'], ".*") }
       file.present? ? file['id'] : false
     end
 
