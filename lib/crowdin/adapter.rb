@@ -19,7 +19,8 @@ module CrowdIn
     # +object_type+ - fully qualified model name, e.g. Object::One
     # +object_id+ - id for the model object
     # +updated_at+ - the last updated timestamp,
-    # which we store in the CrowdIn translation file and used to resolve duplicates
+    # which we store in the CrowdIn translation file and used to resolve duplicates.
+    # Can be nil when the object has no +updated_at+ column.
     # +attributes+ - key value pairs of attribute name to attribute values in english to translate
     # +attribute_params+ - optional params per attribute_key.
     # +attribute_params[:split_into_sentences]+ - indicates whether to split this attribute value into sentences
@@ -40,7 +41,7 @@ module CrowdIn
         file_id = @client.find_file_by_name(file_base_name)
         file_content = file_content_for_translations(object_type, object_id, updated_at, attributes, attribute_params)
 
-        if file_id
+        if file_id && updated_at.present?
           # If file exists, check updated timestamps, and update only if we don't have the latest timestamp's attributes
           attributes = @client.download_source_file(file_id)
           attributes_by_updated = attributes.dig(object_type, object_id)
@@ -141,7 +142,11 @@ module CrowdIn
         end
       end
 
-      { object_type => { object_id => { updated_at => attributes_to_translate } } }.to_json
+      if updated_at.present?
+        { object_type => { object_id => { updated_at => attributes_to_translate } } }.to_json
+      else
+        { object_type => { object_id => attributes_to_translate } }.to_json
+      end
     end
 
     def translations_for_files(file_ids, language)
@@ -174,7 +179,9 @@ module CrowdIn
     #     }
     #   }
     # }
-    # so we resolve the latest attribute_keys and connect sentences together
+    # if the model has updated_at, else, it does not have the updated_at key.
+    #
+    # So, we resolve the latest attribute_keys and connect sentences together
     # to return translations.
     def translations_for_file!(file_id, language)
       raw_translations = @client.export_file(file_id, language)
@@ -188,24 +195,37 @@ module CrowdIn
       end.to_h
     end
 
-    # Given input:
+    # The input could either be:
     # {
     #   updated_at: {
     #     field_1: [ translated_sentence_1, translated_sentence_2, ... ]
     #   }
     # }
-    # get the latest translations, and coalesce translations split into sentence arrays
+    # or simply:
+    # {
+    #   field_1: [ translated_sentence_1, translated_sentence_2, ... ]
+    # }
+    # depending on whether the object has an updated_at column.
+    # This gets the latest translations, and coalesce translations split into sentence arrays
     # into a single translation.
     def latest_translations(translations_by_updated)
+      # Find out if object has updated by inspecting first key and checking if it is a number.
+      # Safe to do under the assumption that object keys are not numeric, but the updated_at timestamp is.
+      has_updated = Float(translations_by_updated.keys.first) != nil rescue false
+
       # iterate through updated_at timestamps in ascending order, and apply translations.
       # This way the latest translations overwrite any older ones.
-      translations = {}
-      updated_asc = translations_by_updated.keys.map(&:to_i).sort
-      updated_asc.each do |updated|
-        next_translations = translations_by_updated[updated.to_s]
-        translations.merge!(next_translations)
+      if has_updated
+        translations = {}
+        updated_asc = translations_by_updated.keys.map(&:to_i).sort
+        updated_asc.each do |updated|
+          next_translations = translations_by_updated[updated.to_s]
+          translations.merge!(next_translations)
+        end
+        join_sentences(translations)
+      else
+        join_sentences(translations_by_updated)
       end
-      join_sentences(translations)
     end
   end
 end

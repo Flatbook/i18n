@@ -36,11 +36,26 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
 
     it "fetches translations, writes them to the DB, and then cleans them up" do
       expect(model).to receive(:find).with(id).and_return(model_instance)
+      expect(model_instance).to receive(:has_attribute?).with(:updated_at).and_return(true)
       expect(model_instance).to receive(:updated_at).and_return(updated)
       expect(model_instance).to receive(:attributes).and_return(attributes)
       expect(adapter).to(
           receive(:upload_attributes_to_translate)
               .with(type, id.to_s, updated, attributes_to_translate, attribute_params)
+              .and_return(upload_response)
+      )
+      expect(logger).to receive(:info).exactly(1).times
+      expect(logger).not_to receive(:error)
+      subject.perform(type, id, attribute_params)
+    end
+
+    it "works when model does not have an updated_at column" do
+      expect(model).to receive(:find).with(id).and_return(model_instance)
+      expect(model_instance).to receive(:has_attribute?).with(:updated_at).and_return(false)
+      expect(model_instance).to receive(:attributes).and_return(attributes)
+      expect(adapter).to(
+          receive(:upload_attributes_to_translate)
+              .with(type, id.to_s, nil, attributes_to_translate, attribute_params)
               .and_return(upload_response)
       )
       expect(logger).to receive(:info).exactly(1).times
@@ -65,6 +80,7 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
 
       it "when uploading attributes errors" do
         expect(model).to receive(:find).with(id).and_return(model_instance)
+        expect(model_instance).to receive(:has_attribute?).with(:updated_at).and_return(true)
         expect(model_instance).to receive(:updated_at).and_return(updated)
         expect(model_instance).to receive(:attributes).and_return(attributes)
         expect(adapter).to(
