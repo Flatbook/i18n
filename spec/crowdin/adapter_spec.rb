@@ -9,11 +9,13 @@ RSpec.describe CrowdIn::Adapter do
   let(:file1_id) { '1' }
   let(:file2_id) { '2' }
   let(:file3_id) { '3' }
+  let(:file4_id) { '4' }
   let(:status) {
     [
         { "file_id" => file1_id, "approvalProgress" => 100 },
         { "file_id" => file2_id, "approvalProgress" => 75 },
         { "file_id" => file3_id, "approvalProgress" => 100 },
+        { "file_id" => file4_id, "approvalProgress" => 100 },
     ]
   }
   let(:raw_translations_1) {
@@ -28,10 +30,14 @@ RSpec.describe CrowdIn::Adapter do
         "555" => { "field1" => "val 1", "field2" => "val 2" }
     } } }
   }
+  let(:raw_translations_3) {
+    { "ModelWithoutUpdated" => { "1" => { "field1" => "val 1", "field2" => "val 2" } } }
+  }
   let(:expected_output) {
     {
         "Model" => { "1" => { "field1" => "val 3", "field2" => "val 2" } },
-        "AnotherModel" => { "1" => { "field1" => "val 3", "field2" => "val 2" } }
+        "AnotherModel" => { "1" => { "field1" => "val 3", "field2" => "val 2" } },
+        "ModelWithoutUpdated" => { "1" => { "field1" => "val 1", "field2" => "val 2" } }
     }
   }
 
@@ -40,6 +46,7 @@ RSpec.describe CrowdIn::Adapter do
       expect(client).to receive(:language_status).with(language).and_return(status)
       expect(client).to receive(:export_file).with(file1_id, language).and_return(raw_translations_1)
       expect(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
+      expect(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
 
       r = subject.translations(language)
       expect(r.success).to eq expected_output
@@ -50,6 +57,7 @@ RSpec.describe CrowdIn::Adapter do
       expect(client).to receive(:language_status).with(language).and_return(status)
       expect(client).to receive(:export_file).with(file1_id, language).and_raise(error)
       expect(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
+      expect(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
 
       r = subject.translations(language)
       expect(r.success).to eq(expected_output.except("Model"))
@@ -75,6 +83,14 @@ RSpec.describe CrowdIn::Adapter do
 
       r = subject.translations_for_file(file1_id, language)
       expect(r.success).to eq expected_output
+      expect(r.failure).to be_nil
+    end
+
+    it "returns translations for given file when object doesn't have updated_at" do
+      expect(client).to receive(:export_file).with(file1_id, language).and_return(raw_translations_3)
+
+      r = subject.translations_for_file(file1_id, language)
+      expect(r.success).to eq({ "ModelWithoutUpdated" => { "1" => { "field1" => "val 1", "field2" => "val 2" } } })
       expect(r.failure).to be_nil
     end
 
@@ -206,6 +222,17 @@ RSpec.describe CrowdIn::Adapter do
         expect(r.failure).to be_nil
       end
 
+      it "does not update if object not found in source file" do
+        existing_content = { object_type => { "other_object_id" => { "1000" => {} } } }
+        expect(client).to receive(:download_source_file).with(file1_id).and_return(existing_content)
+        expect(client).not_to receive(:update_file)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        expect(r.success).to be_nil
+        expected_error = CrowdIn::FileMethods::FilesError.new({ file1_id => "Could not find #{object_type} #{object_id}" })
+        expect(r.failure).to eq expected_error
+      end
+
       it "returns failures when downloading file errors" do
         expect(client).to receive(:download_source_file).with(file1_id).and_raise(error)
         expect(client).not_to receive(:update_file)
@@ -223,6 +250,22 @@ RSpec.describe CrowdIn::Adapter do
         r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
         expect(r.success).to be_nil
         expect(r.failure).to eq error
+      end
+    end
+
+    context "for an object without the updated_at column" do
+      let(:content) { { object_type => { object_id => {
+          "field1" => "val 1. val 2.",
+          "field2" => [ "val 3.", "val 4." ]
+      } } }.to_json }
+
+      it "adds a new file with content split by sentences according to params" do
+        expect(client).to receive(:find_file_by_name).with(file_base_name).and_return(false)
+        expect(client).to receive(:add_file).with(file_name, content).and_return(nil)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, nil, attributes, params)
+        expect(r.success).to be_nil
+        expect(r.failure).to be_nil
       end
     end
 

@@ -258,6 +258,11 @@ RSpec.describe CrowdIn::Client do
     it "returns false when name is not found" do
       expect(subject.find_file_by_name("not_found")).to eq false
     end
+
+    it "returns false when given name and existing file names are substrings of one another" do
+      expect(subject.find_file_by_name("file_12")).to eq false
+      expect(subject.find_file_by_name("file_1234")).to eq false
+    end
   end
 
   context "mutating files" do

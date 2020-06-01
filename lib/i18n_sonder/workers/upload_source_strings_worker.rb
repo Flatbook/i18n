@@ -27,7 +27,7 @@ module I18nSonder
         klass = object_type.constantize
         object = klass.find(object_id)
         if object.present?
-          updated_at = object.updated_at.to_i
+          updated_at = object.has_attribute?(:updated_at) ? object.updated_at.to_i : nil
           attributes_to_translate = object.attributes.slice(*translated_attribute_params.keys)
 
           @logger.info("[I18nSonder::UploadSourceStringsWorker] Uploading attributes to translate for #{object_type} #{object_id}")
