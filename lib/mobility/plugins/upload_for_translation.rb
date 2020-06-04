@@ -14,8 +14,11 @@ module Mobility
       UPLOAD_TRANSLATION_DELAY = (ENV["UPLOAD_FOR_TRANSLATION_DELAY_MIN"] || 5).minutes
 
       def write(locale, value, options = {})
-        # Only upload for translation if we are writing content in the default locale
-        if locale == I18n.default_locale
+        old_value = model.read_attribute(attribute)
+
+        # Only upload for translation if we are writing content in the default locale,
+        # and if the new value being written is different to the already existing value.
+        if locale == I18n.default_locale && value != old_value
           # Get translated attributes, and each attribute's params for uploading translations
           translated_attribute_names = model_class.translated_attribute_names
           translated_attribute_params = {}
