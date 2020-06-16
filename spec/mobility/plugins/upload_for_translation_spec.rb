@@ -26,6 +26,14 @@ RSpec.describe Mobility::Plugins::UploadForTranslation do
     instance.update!(content: "new content")
   end
 
+  context "for instance without id" do
+    let(:instance) { Post.new(title: "T1", content: "some content", published: true) }
+
+    it "does not call async worker" do
+      expect(worker_class_mock).not_to receive(:perform_in)
+    end
+  end
+
   context "when writing in non-default locale" do
     before do
       I18n.locale = :fr
