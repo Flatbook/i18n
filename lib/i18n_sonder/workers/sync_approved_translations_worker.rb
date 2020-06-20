@@ -16,7 +16,7 @@ module I18nSonder
 
         successful_syncs = {}
         # Iterate through each language we need to sync
-        languages_to_translate = I18n.available_locales.reject { |l| l == I18n.default_locale }
+        languages_to_translate = I18nSonder.languages_to_translate.reject { |l| l == I18n.default_locale }
         languages_to_translate.each do |language|
           @logger.info("[I18nSonder::SyncApprovedTranslationsWorker] Fetching translations for #{language}")
           # Fetch translations in the following format

@@ -31,5 +31,10 @@ module I18nSonder
           )
       )
     end
+
+    def languages_to_translate
+       config_val = I18nSonder.configuration.languages_to_translate
+       config_val.present? ? config_val : I18n.available_locales
+    end
   end
 end
