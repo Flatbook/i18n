@@ -63,8 +63,6 @@ module I18nSonder
 
         duplicate_attrs_to_locales = attributes_to_translate.map { |a, _| [a, []] }.to_h
 
-        # require 'pry'
-        # binding.pry
         duplicates.each do |locale, translations|
           unless translations.empty?
             Mobility.with_locale(locale) do
