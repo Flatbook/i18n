@@ -29,14 +29,24 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
 
   context "#perform" do
     let(:upload_response) { CrowdIn::Adapter::ReturnObject.new(nil, nil) }
+    let(:has_updated_at) { true }
+    let(:duplicates) { [] }
 
     before do
+      allow(I18nSonder).to receive(:languages_to_translate).and_return(%i[fr es])
       expect(I18nSonder).to receive(:localization_provider).and_return(adapter)
+
+      allow(model).to receive(:find).with(id).and_return(model_instance)
+      allow(subject).to receive(:translation_table_name).and_return("t")
+      allow(model).to receive(:joins).and_return(model)
+      allow(model).to receive(:select).and_return(model)
+      allow(model).to receive(:where).and_return(model)
+      allow(model).to receive(:order).and_return(duplicates)
+      allow(model_instance).to receive(:has_attribute?).with(:updated_at).and_return(has_updated_at)
+      allow(model_instance).to receive(:id).and_return(id)
     end
 
     it "fetches translations, writes them to the DB, and then cleans them up" do
-      expect(model).to receive(:find).with(id).and_return(model_instance)
-      expect(model_instance).to receive(:has_attribute?).with(:updated_at).and_return(true)
       expect(model_instance).to receive(:updated_at).and_return(updated)
       expect(model_instance).to receive(:attributes).and_return(attributes)
       expect(adapter).to(
@@ -49,26 +59,26 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
       subject.perform(type, id, attribute_params)
     end
 
-    it "works when model does not have an updated_at column" do
-      expect(model).to receive(:find).with(id).and_return(model_instance)
-      expect(model_instance).to receive(:has_attribute?).with(:updated_at).and_return(false)
-      expect(model_instance).to receive(:attributes).and_return(attributes)
-      expect(adapter).to(
-          receive(:upload_attributes_to_translate)
-              .with(type, id.to_s, nil, attributes_to_translate, attribute_params)
-              .and_return(upload_response)
-      )
-      expect(logger).to receive(:info).exactly(1).times
-      expect(logger).not_to receive(:error)
-      subject.perform(type, id, attribute_params)
+    context "when model does not have an updated_at column" do
+      let(:has_updated_at) { false }
+
+      it "works" do
+        expect(model_instance).to receive(:attributes).and_return(attributes)
+        expect(adapter).to(
+            receive(:upload_attributes_to_translate)
+                .with(type, id.to_s, nil, attributes_to_translate, attribute_params)
+                .and_return(upload_response)
+        )
+        expect(logger).to receive(:info).exactly(1).times
+        expect(logger).not_to receive(:error)
+        subject.perform(type, id, attribute_params)
+      end
     end
 
-    context "should error" do
-      let(:translations) { { "Model" => translation1 } }
-      let(:upload_response) { CrowdIn::Adapter::ReturnObject.new({}, error) }
+    context "when object can't be found" do
+      let(:model_instance) { nil }
 
-      it "when object can't be found" do
-        expect(model).to receive(:find).with(id).and_return(nil)
+      it "should error" do
         expect(model_instance).not_to receive(:updated_at)
         expect(model_instance).not_to receive(:attributes)
         expect(adapter).not_to receive(:upload_attributes_to_translate)
@@ -77,10 +87,13 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
         expect(logger).to receive(:error).exactly(1).times
         subject.perform(type, id, attribute_params)
       end
+    end
 
-      it "when uploading attributes errors" do
-        expect(model).to receive(:find).with(id).and_return(model_instance)
-        expect(model_instance).to receive(:has_attribute?).with(:updated_at).and_return(true)
+    context "when uploading attributes errors" do
+      let(:upload_response) { CrowdIn::Adapter::ReturnObject.new({}, error) }
+      let(:translations) { { "Model" => translation1 } }
+
+      it "should error" do
         expect(model_instance).to receive(:updated_at).and_return(updated)
         expect(model_instance).to receive(:attributes).and_return(attributes)
         expect(adapter).to(
@@ -94,6 +107,101 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
         subject.perform(type, id, attribute_params)
       end
     end
+
+    context "with duplicates" do
+      let(:translation1) { create_translation("french val 1", "fr") }
+      let(:translation2) { create_translation("french val 3", "fr") }
+      let(:translation3) { create_translation("spanish val 1", "es") }
+      let(:translation4) { create_translation("spanish val 3", "es") }
+
+      before do
+        expect(model_instance).to receive(:updated_at).and_return(updated)
+        expect(model_instance).to receive(:attributes).and_return(attributes)
+      end
+
+      context "for all attribute values" do
+        context "for all locales to translate" do
+          let(:french_attrs) { { "field1" => translation1.value, "field3" => translation2.value} }
+          let(:spanish_attrs) { { "field1" => translation3.value, "field3" => translation4.value} }
+
+          it "updates all attribute values using duplicates" do
+            expect(model).to receive(:order).exactly(:twice).and_return([translation1, translation3], [translation2, translation4])
+            expect(model_instance).to receive(:update).with(french_attrs).exactly(:once)
+            expect(model_instance).to receive(:update).with(spanish_attrs).exactly(:once)
+            expect(adapter).to(
+                receive(:upload_attributes_to_translate)
+                    .with(type, id.to_s, updated, {}, attribute_params)
+                    .and_return(upload_response)
+            )
+
+            expect(logger).to receive(:info).exactly(3).times
+            subject.perform(type, id, attribute_params)
+          end
+        end
+
+        context "for some locales to translate" do
+          let(:french_attrs) { { "field1" => translation1.value, "field3" => translation2.value} }
+
+          it "updates attribute values for locales with duplicates and still uploads all attribute value pairs" do
+            expect(model).to receive(:order).exactly(:twice).and_return([translation1], [translation2])
+            expect(model_instance).to receive(:update).with(french_attrs).exactly(:once)
+            expect(adapter).to(
+                receive(:upload_attributes_to_translate)
+                    .with(type, id.to_s, updated, attributes_to_translate, attribute_params)
+                    .and_return(upload_response)
+            )
+
+            expect(logger).to receive(:info).exactly(2).times
+            subject.perform(type, id, attribute_params)
+          end
+        end
+      end
+
+      context "when some attribute values are duplicates" do
+        context "for all locales to translate" do
+          let(:french_attrs) { { "field1" => translation1.value } }
+          let(:spanish_attrs) { { "field1" => translation3.value } }
+
+          it "updates attribute values for locales with duplicates and uploads only attribute value pairs without duplicates for all locales" do
+            expect(model).to receive(:order).exactly(:twice).and_return([translation1, translation3], [])
+            expect(model_instance).to receive(:update).with(french_attrs).exactly(:once)
+            expect(model_instance).to receive(:update).with(spanish_attrs).exactly(:once)
+            expect(adapter).to(
+                receive(:upload_attributes_to_translate)
+                    .with(type, id.to_s, updated, attributes_to_translate.except("field1"), attribute_params)
+                    .and_return(upload_response)
+            )
+
+            expect(logger).to receive(:info).exactly(3).times
+            subject.perform(type, id, attribute_params)
+          end
+        end
+
+        context "for some locales to translate" do
+          let(:french_attrs) { { "field1" => translation1.value } }
+
+          it "updates attribute values for locales with duplicates and uploads all attribute value pairs" do
+            expect(model).to receive(:order).exactly(:twice).and_return([translation1], [])
+            expect(model_instance).to receive(:update).with(french_attrs).exactly(:once)
+            expect(adapter).to(
+                receive(:upload_attributes_to_translate)
+                    .with(type, id.to_s, updated, attributes_to_translate, attribute_params)
+                    .and_return(upload_response)
+            )
+
+            expect(logger).to receive(:info).exactly(2).times
+            subject.perform(type, id, attribute_params)
+          end
+        end
+      end
+    end
+  end
+
+  def create_translation(value, locale)
+    t = Mobility::ActiveRecord::TextTranslation.new
+    allow(t).to receive(:value).and_return(value)
+    allow(t).to receive(:locale).and_return(locale)
+    t
   end
 end
 

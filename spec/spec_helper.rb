@@ -15,6 +15,8 @@ ActiveRecord::Base.establish_connection adapter: 'sqlite3', database: ':memory:'
 
 I18n.enforce_available_locales = false
 
+RSpec::Mocks.configuration.allow_message_expectations_on_nil = true
+
 RSpec.configure do |config|
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true

@@ -35,6 +35,7 @@ module CrowdIn
     def upload_attributes_to_translate(object_type, object_id, updated_at, attributes, attribute_params)
       # Find the CrowdIn File corresponding to object.
       to_return = ReturnObject.new(nil, nil)
+      return to_return if attributes.empty?
       begin
         file_name = file_name(object_type, object_id)
         file_base_name = File.basename(file_name, ".*")
