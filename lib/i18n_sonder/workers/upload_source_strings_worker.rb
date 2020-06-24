@@ -92,7 +92,7 @@ module I18nSonder
       # If there are multiple translations, take the one with the latest updated_at timestamp.
       def duplicate_translations2(klass, attributes_to_translate)
         attributes_to_translate.inject({}) do |translations_by_locale, (attr, value)|
-          duplicates = klass.joins("as k INNER JOIN #{translation_table_name(attr)} as t "\
+          duplicates = klass.joins("as k INNER JOIN #{translation_table_name(klass, attr)} as t "\
                     "ON t.translatable_id = k.id "\
                     "AND t.translatable_type = '#{klass}' "\
                     "AND t.key = '#{attr}'")
@@ -109,7 +109,7 @@ module I18nSonder
 
       # Note: This method for getting the translation table name for a given attribute
       # is specific to the Key-Value Mobility backend.
-      def translation_table_name(attribute)
+      def translation_table_name(klass, attribute)
         klass.mobility_backend_class(attribute).class_name.arel_table.name
       end
     end
