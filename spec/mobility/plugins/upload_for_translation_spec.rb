@@ -62,7 +62,7 @@ RSpec.describe Mobility::Plugins::UploadForTranslation do
       end
     end
 
-    context "that evaluates to false" do
+    context "that evaluates to true" do
       before do
         class Post < ActiveRecord::Base
           def allowed_for_translation?; true; end
