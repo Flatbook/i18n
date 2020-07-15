@@ -29,8 +29,9 @@ RSpec.describe Mobility::Plugins::UploadForTranslation do
   context "for instance without id" do
     let(:instance) { Post.new(title: "T1", content: "some content", published: true) }
 
-    it "does not call async worker" do
+    it "does not upload for translation" do
       expect(worker_class_mock).not_to receive(:perform_in)
+      instance.save!
     end
   end
 
@@ -40,9 +41,47 @@ RSpec.describe Mobility::Plugins::UploadForTranslation do
       I18n.default_locale = :en
     end
 
-    it "should be a no-op" do
+    it "does not upload for translation" do
       expect(worker_class_mock).not_to receive(:perform_in)
       instance.save!
+    end
+  end
+
+  context "for instance with allowed_for_translation? method" do
+    context "that evaluates to false" do
+      before do
+        class Post < ActiveRecord::Base
+          def allowed_for_translation?; false; end
+        end
+      end
+
+      let(:allowed) { false }
+      it "does not upload for translation" do
+        expect(worker_class_mock).not_to receive(:perform_in)
+        instance.save!
+      end
+    end
+
+    context "that evaluates to true" do
+      before do
+        class Post < ActiveRecord::Base
+          def allowed_for_translation?; true; end
+        end
+      end
+
+      let(:allowed) { false }
+      it "does not upload for translation" do
+        expect(worker_class_mock).to(
+            receive(:perform_in).with(5.minutes, 'Post', id, attribute_params).exactly(2).times
+        )
+        instance.save!
+      end
+    end
+
+    after do
+      class Post < ActiveRecord::Base
+        remove_method(:allowed_for_translation?)
+      end
     end
   end
 end
