@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'mobility', '~> 0.8.9'
   spec.add_dependency 'rest-client', '~> 2.0'
   spec.add_dependency 'sidekiq'
-  spec.add_dependency 'rack', '>= 2.2.3'
+  spec.add_dependency 'rack', '>= 2.0.6'
   spec.add_development_dependency 'rake', '~> 13.0'
   spec.add_development_dependency 'rspec', '~> 3.0'
   spec.add_development_dependency 'sqlite3', '~> 1.3', '>= 1.3.0'
