@@ -15,8 +15,14 @@ module Mobility
         end
       end
 
+      # Note, this does not take into account region specific locale differences.
+      # For example, if the `locale` is "en-GB", and the default_locale is "en",
+      # we treat "en-GB" as the default locale and write to the model's table,
+      # rather than to the translation table.
       def write(locale, value, options = {})
-        if locale == I18n.default_locale
+        locale_without_region = locale.to_s.split("-").first
+        default_locale_without_region = I18n.default_locale.to_s.split("-").first
+        if locale_without_region == default_locale_without_region
           model.write_attribute(attribute, value)
         else
           super(locale, value, options)

@@ -109,4 +109,22 @@ RSpec.describe Mobility::Backends::DefaultLocaleOptimizedKeyValue do
       end
     end
   end
+
+  context "if content is set in default locale with different region" do
+    let(:content) { "new content" }
+
+    before do
+      I18n.locale = :"en-GB"
+      I18n.default_locale = :en
+      instance.content = content
+      instance.save!
+    end
+
+    it "writes go to model's table", aggregate_failures: true do
+      mobility_sql = "select count(*) from mobility_text_translations"
+      model_sql = "select content from posts where id = #{instance.id}"
+      expect(ActiveRecord::Base.connection.exec_query(mobility_sql).rows[0][0]).to eq 0
+      expect(ActiveRecord::Base.connection.exec_query(model_sql).rows[0][0]).to eq content
+    end
+  end
 end
