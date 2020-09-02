@@ -18,10 +18,13 @@ module I18nSonder
       # have it passed in as arguments so as to minimize race conditions and obtain as up-to-date
       # information regarding attributes as possible.
       #
-      # Any attribute key of an object that requires translation must appear as a key in the
+      # Options:
+      # - Any attribute key of an object that requires translation must appear as a key in the
       # +translated_attribute_params+ hash. The value in this hash is any relevant params on how
       # to upload these source strings for translations. The value can be empty for default values.
-      def perform(object_type, object_id, translated_attribute_params)
+      # - +namespace+ is an option that specifies the directory to upload the source strings to,
+      # if that is desired.
+      def perform(object_type, object_id, options)
         localization_provider = I18nSonder.localization_provider
 
         # Find the object and all its localized attributes
@@ -32,12 +35,12 @@ module I18nSonder
           attributes_to_translate = handle_duplicates(
               object,
               klass,
-              object.attributes.slice(*translated_attribute_params.keys)
+              object.attributes.slice(*options[:translated_attribute_params].keys)
           )
 
           @logger.info("#{@log_pre} Uploading attributes #{attributes_to_translate.keys} to translate for #{object_type} #{object_id}")
           result = localization_provider.upload_attributes_to_translate(
-              object_type, object_id.to_s, updated_at, attributes_to_translate, translated_attribute_params
+              object_type, object_id.to_s, updated_at, attributes_to_translate, options
           )
           handle_failure(result.failure)
         else
@@ -59,7 +62,7 @@ module I18nSonder
       def handle_duplicates(object, klass, attributes_to_translate)
         locales_to_translate = I18nSonder.languages_to_translate.reject { |l| l == I18n.default_locale }.to_set
 
-        duplicates = duplicate_translations2(klass, attributes_to_translate)
+        duplicates = duplicate_translations(klass, attributes_to_translate)
 
         duplicate_attrs_to_locales = attributes_to_translate.map { |a, _| [a, []] }.to_h
 
@@ -90,7 +93,7 @@ module I18nSonder
       # 2) the translation isn't stale (its updated time is after the translatable object's updated time)
       #
       # If there are multiple translations, take the one with the latest updated_at timestamp.
-      def duplicate_translations2(klass, attributes_to_translate)
+      def duplicate_translations(klass, attributes_to_translate)
         attributes_to_translate.inject({}) do |translations_by_locale, (attr, value)|
           duplicates = klass.joins("as k INNER JOIN #{translation_table_name(klass, attr)} as t "\
                     "ON t.translatable_id = k.id "\
