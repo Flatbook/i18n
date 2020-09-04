@@ -35,7 +35,7 @@ module I18nSonder
           attributes_to_translate = handle_duplicates(
               object,
               klass,
-              object.attributes.slice(*options[:translated_attribute_params].keys)
+              object.attributes.slice(*options[:translated_attribute_params]&.keys)
           )
 
           @logger.info("#{@log_pre} Uploading attributes #{attributes_to_translate.keys} to translate for #{object_type} #{object_id}")

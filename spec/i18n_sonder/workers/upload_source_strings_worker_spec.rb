@@ -23,6 +23,7 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
   let(:type) { 'Model'}
   let(:updated) { 123 }
   let(:attribute_params) { { "field1" => {}, "field3" => { foo: true } } }
+  let(:options) { { translated_attribute_params: attribute_params } }
   let(:attributes_to_translate) { { "field1" => "val 1", "field3" => "val 3" } }
 
   let(:error) { CrowdIn::Client::Errors::Error.new(404, "not found") }
@@ -51,12 +52,12 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
       expect(model_instance).to receive(:attributes).and_return(attributes)
       expect(adapter).to(
           receive(:upload_attributes_to_translate)
-              .with(type, id.to_s, updated, attributes_to_translate, attribute_params)
+              .with(type, id.to_s, updated, attributes_to_translate, options)
               .and_return(upload_response)
       )
       expect(logger).to receive(:info).exactly(1).times
       expect(logger).not_to receive(:error)
-      subject.perform(type, id, attribute_params)
+      subject.perform(type, id, options)
     end
 
     context "when model does not have an updated_at column" do
@@ -66,12 +67,12 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
         expect(model_instance).to receive(:attributes).and_return(attributes)
         expect(adapter).to(
             receive(:upload_attributes_to_translate)
-                .with(type, id.to_s, nil, attributes_to_translate, attribute_params)
+                .with(type, id.to_s, nil, attributes_to_translate, options)
                 .and_return(upload_response)
         )
         expect(logger).to receive(:info).exactly(1).times
         expect(logger).not_to receive(:error)
-        subject.perform(type, id, attribute_params)
+        subject.perform(type, id, options)
       end
     end
 
@@ -85,7 +86,7 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
 
         expect(logger).not_to receive(:info)
         expect(logger).to receive(:error).exactly(1).times
-        subject.perform(type, id, attribute_params)
+        subject.perform(type, id, options)
       end
     end
 
@@ -98,13 +99,13 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
         expect(model_instance).to receive(:attributes).and_return(attributes)
         expect(adapter).to(
             receive(:upload_attributes_to_translate)
-                .with(type, id.to_s, updated, attributes_to_translate, attribute_params)
+                .with(type, id.to_s, updated, attributes_to_translate, options)
                 .and_return(upload_response)
         )
 
         expect(logger).to receive(:info).exactly(1).times
         expect(logger).to receive(:error).exactly(1).times
-        subject.perform(type, id, attribute_params)
+        subject.perform(type, id, options)
       end
     end
 
@@ -130,12 +131,12 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
             expect(model_instance).to receive(:update).with(spanish_attrs).exactly(:once)
             expect(adapter).to(
                 receive(:upload_attributes_to_translate)
-                    .with(type, id.to_s, updated, {}, attribute_params)
+                    .with(type, id.to_s, updated, {}, options)
                     .and_return(upload_response)
             )
 
             expect(logger).to receive(:info).exactly(3).times
-            subject.perform(type, id, attribute_params)
+            subject.perform(type, id, options)
           end
         end
 
@@ -147,12 +148,12 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
             expect(model_instance).to receive(:update).with(french_attrs).exactly(:once)
             expect(adapter).to(
                 receive(:upload_attributes_to_translate)
-                    .with(type, id.to_s, updated, attributes_to_translate, attribute_params)
+                    .with(type, id.to_s, updated, attributes_to_translate, options)
                     .and_return(upload_response)
             )
 
             expect(logger).to receive(:info).exactly(2).times
-            subject.perform(type, id, attribute_params)
+            subject.perform(type, id, options)
           end
         end
       end
@@ -168,12 +169,12 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
             expect(model_instance).to receive(:update).with(spanish_attrs).exactly(:once)
             expect(adapter).to(
                 receive(:upload_attributes_to_translate)
-                    .with(type, id.to_s, updated, attributes_to_translate.except("field1"), attribute_params)
+                    .with(type, id.to_s, updated, attributes_to_translate.except("field1"), options)
                     .and_return(upload_response)
             )
 
             expect(logger).to receive(:info).exactly(3).times
-            subject.perform(type, id, attribute_params)
+            subject.perform(type, id, options)
           end
         end
 
@@ -185,12 +186,12 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
             expect(model_instance).to receive(:update).with(french_attrs).exactly(:once)
             expect(adapter).to(
                 receive(:upload_attributes_to_translate)
-                    .with(type, id.to_s, updated, attributes_to_translate, attribute_params)
+                    .with(type, id.to_s, updated, attributes_to_translate, options)
                     .and_return(upload_response)
             )
 
             expect(logger).to receive(:info).exactly(2).times
-            subject.perform(type, id, attribute_params)
+            subject.perform(type, id, options)
           end
         end
       end
@@ -204,4 +205,3 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
     t
   end
 end
-

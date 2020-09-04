@@ -66,7 +66,7 @@ module CrowdIn
           if options.key?(:namespace)
             dir_name = options[:namespace].last
             directory = @client.find_directory_by_name(dir_name)
-            directory = @client.add_directory(dir_name) unless directory.present?
+            directory = @client.add_directory(dir_name) unless directory
             @client.add_file(file_name, file_content, directory)
           else
             @client.add_file(file_name, file_content)

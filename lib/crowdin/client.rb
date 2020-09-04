@@ -115,7 +115,7 @@ module CrowdIn
     # Add a new file given file name and content.
     # This first creates a storage object in CrowdIn, and then applies that
     # storage to a new file.
-    def add_file(name, content, directory_id = None)
+    def add_file(name, content, directory_id = nil)
       storage = add_storage(name, content)
 
       path = "api/v2/projects/#{@project_id}/files"
@@ -133,9 +133,10 @@ module CrowdIn
 
     # Add a new directory to root with the given name, and return the
     # directory's id.
-    def add_directory(name)
+    def add_directory(name, parent_directory_id = nil)
       path = "api/v2/projects/#{@project_id}/directories"
       body = { name: name }
+      body[:directoryId] = parent_directory_id if parent_directory_id.present?
       directory = post_request(path, body.to_json, content_type: :json)
       directory.present? ? directory['id'] : false
     end

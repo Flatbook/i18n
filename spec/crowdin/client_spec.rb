@@ -65,7 +65,65 @@ RSpec.describe CrowdIn::Client do
     end
   end
 
-  context "#file_status" do
+  context "#directories" do
+    let(:response_string) { '{ "data": [ { "data": { "id": "123" } }, { "data": { "id": "234" } } ] }' }
+    let(:response) { [ { "id" => "123" }, { "id" => "234" } ] }
+    let(:limit) { 500 }
+    let(:offset) { 0 }
+
+    before do
+      stub_request(:get, "#{base_path}/directories?limit=#{limit}&offset=#{offset}")
+          .to_return(body: response_string, status: 200)
+    end
+
+    it "returns directories in a flattened list" do
+      expect(subject.directories).to eq response
+    end
+
+    context "with pagination" do
+      let(:response) { Array.new(520, { "id" => "1" }) }
+      let(:response_string) { { "data" => response[0..499].map { |e| { "data" => e } } }.to_json }
+      let(:second_response_string) { { "data" => response[500..519].map { |e| { "data" => e } } }.to_json }
+
+      before do
+        # stub second pagination request
+        stub_request(:get, "#{base_path}/directories?limit=#{limit}&offset=500")
+            .to_return(body: second_response_string, status: 200)
+      end
+
+      it "returns files after multiple calls in a flattened list" do
+        expect(subject.directories).to eq response
+      end
+    end
+
+    context "with caching" do
+      let(:connection) { instance_double(RestClient::Resource) }
+
+      before do
+        subject.instance_variable_set(:@connection, connection)
+      end
+
+      it "uses cached results on subsequent calls" do
+        expect(connection).to receive(:options).exactly(:once).and_return({ params: {} })
+        expect(connection).to receive(:[]).exactly(:once).and_return(connection)
+        expect(connection).to receive(:get).exactly(:once).and_return(response)
+        # call #files twice and expect get request only once
+        expect(subject.directories).to eq response
+        expect(subject.directories).to eq response
+      end
+
+      it "fetches from CrowdIn if hard_fetch is requested" do
+        expect(connection).to receive(:options).exactly(:twice).and_return({ params: {} })
+        expect(connection).to receive(:[]).exactly(:twice).and_return(connection)
+        expect(connection).to receive(:get).exactly(:twice).and_return(response)
+        # call #files twice and expect get request twice with hard_fetch option
+        expect(subject.directories).to eq response
+        expect(subject.directories(hard_fetch = true)).to eq response
+      end
+    end
+  end
+
+context "#file_status" do
     let(:file_id) { "123" }
     let(:response_string) { '{ "data": [ { "data": { "languageId": "fr" } }, { "data": { "languageId": "es" } } ] }' }
     let(:response) { [ { "languageId" => "fr" }, { "languageId" => "es" } ] }
@@ -284,11 +342,12 @@ RSpec.describe CrowdIn::Client do
     end
 
     context "via #add_file" do
+      let(:body) { { "storageId" => storage_id, "name" => name } }
       before do
         stub_request(:post, "#{base_path}/files")
             .with(
                 headers: { "Content-Type" => "application/json" },
-                body: hash_including( { "storageId" => storage_id, "name" => name } )
+                body: hash_including( body )
             )
             .to_return(body: response_string, status: file_response_status)
       end
@@ -296,6 +355,15 @@ RSpec.describe CrowdIn::Client do
       context "on success" do
         it "returns expected response" do
           expect(subject.add_file(name, content)).to eq response
+        end
+
+        context "with directory id" do
+          let(:directory_id) { 1 }
+          let(:body) { { "storageId" => storage_id, "name" => name, "directoryId" => directory_id } }
+
+          it "returns expected response" do
+            expect(subject.add_file(name, content, directory_id)).to eq response
+          end
         end
       end
 
@@ -355,6 +423,57 @@ RSpec.describe CrowdIn::Client do
 
           it "returns expected response" do
             expect { subject.update_file(file_id, content) }.to raise_error(CrowdIn::Client::Errors::Error, "404: error message")
+          end
+        end
+      end
+    end
+
+    context "#add_directory" do
+      let(:id) { 222 }
+      let(:body) { { "name" => name } }
+      let(:response) { { "id" => id, "name" => name} }
+      let(:response_string) { "{ \"data\": #{response.to_json} }" }
+
+      before do
+        stub_request(:post, "#{base_path}/directories")
+            .with(
+                headers: { "Content-Type" => "application/json" },
+                body: hash_including( body )
+            )
+            .to_return(body: response_string, status: file_response_status)
+      end
+
+      context "on success" do
+        it "returns expected response" do
+          expect(subject.add_directory(name)).to eq id
+        end
+
+        context "with directory id" do
+          let(:directory_id) { 1 }
+          let(:body) { { "name" => name, "directoryId" => directory_id } }
+
+          it "returns expected response" do
+            expect(subject.add_directory(name, directory_id)).to eq id
+          end
+        end
+      end
+
+      context "on failure" do
+        let(:response_string) { '{ "error": { "code": 404, "message": "error message" } }' }
+
+        context "of adding storage" do
+          let(:storage_response_status) { 404 }
+
+          it "returns expected response" do
+            expect { subject.add_directory(name) }.to raise_error(CrowdIn::Client::Errors::Error, "404: error message")
+          end
+        end
+
+        context "of adding file" do
+          let(:file_response_status) { 404 }
+
+          it "returns expected response" do
+            expect { subject.add_directory(name) }.to raise_error(CrowdIn::Client::Errors::Error, "404: error message")
           end
         end
       end
