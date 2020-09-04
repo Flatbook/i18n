@@ -23,6 +23,7 @@ module CrowdIn
       @connection = RestClient::Resource.new(base_url, options)
 
       @files_cache = {}
+      @directories_cache = {}
       @files_status_cache = {}
     end
 
@@ -33,6 +34,15 @@ module CrowdIn
         @files_cache = with_pagination { |params| get_request(path, params) }
       end
       @files_cache
+    end
+
+    # Get metadata for all files in a project
+    def directories(hard_fetch = false)
+      if @directories_cache.empty? || hard_fetch
+        path = "api/v2/projects/#{@project_id}/directories"
+        @directories_cache = with_pagination { |params| get_request(path, params) }
+      end
+      @directories_cache
     end
 
     # Get the translation progress for a given file.
@@ -85,21 +95,33 @@ module CrowdIn
     # The +name+ argument must be the basename of the file, e.g. "File_123.json"'s
     # basename is "File_123".
     #
-    # Return the files's id, if found, else return false.
+    # Return the file's id, if found, else return false.
     def find_file_by_name(name)
       file = files.find { |f| name == File.basename(f['name'], ".*") }
       file.present? ? file['id'] : false
     end
 
+    # Find the first directory in CrowdIn whose name is equal to the given name.
+    # Note, if there are multiple sub-directories with the same names across the
+    # project, then this function will simply return the first found. As a result,
+    # there is an implicit assumption that all directories are uniquely named.
+    #
+    # Return the directory's id, if found, else return false.
+    def find_directory_by_name(name)
+      directory = directories.find { |f| name == f['name'] }
+      directory.present? ? directory['id'] : false
+    end
+
     # Add a new file given file name and content.
     # This first creates a storage object in CrowdIn, and then applies that
     # storage to a new file.
-    def add_file(name, content)
+    def add_file(name, content, directory_id = nil)
       storage = add_storage(name, content)
 
       path = "api/v2/projects/#{@project_id}/files"
-      body = { storageId: storage['id'], name: storage['fileName'] }.to_json
-      post_request(path, body, content_type: :json)
+      body = { storageId: storage['id'], name: storage['fileName'] }
+      body[:directoryId] = directory_id if directory_id.present?
+      post_request(path, body.to_json, content_type: :json)
     end
 
     def add_storage(name, content)
@@ -107,6 +129,16 @@ module CrowdIn
       body = content
       headers = { :"Crowdin-API-FileName" => name, content_type: :json }
       post_request(path, body, headers)
+    end
+
+    # Add a new directory to root with the given name, and return the
+    # directory's id.
+    def add_directory(name, parent_directory_id = nil)
+      path = "api/v2/projects/#{@project_id}/directories"
+      body = { name: name }
+      body[:directoryId] = parent_directory_id if parent_directory_id.present?
+      directory = post_request(path, body.to_json, content_type: :json)
+      directory.present? ? directory['id'] : false
     end
 
     # Given a CrowdIn, retrieve the contents of that file.

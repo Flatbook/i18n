@@ -164,6 +164,7 @@ RSpec.describe CrowdIn::Adapter do
         "field2" => [ "val 3.", "val 4." ]
     } } } }.to_json }
     let(:params) { { "field2" => { split_into_sentences: true } } }
+    let(:options) { { translated_attribute_params: params } }
     let(:file_name) { "Foo_Bar-1.json" }
     let(:file_base_name) { "Foo_Bar-1"}
 
@@ -172,7 +173,7 @@ RSpec.describe CrowdIn::Adapter do
         expect(client).to receive(:find_file_by_name).with(file_base_name).and_return(false)
         expect(client).to receive(:add_file).with(file_name, content).and_return(nil)
 
-        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
         expect(r.success).to be_nil
         expect(r.failure).to be_nil
       end
@@ -181,7 +182,7 @@ RSpec.describe CrowdIn::Adapter do
         expect(client).to receive(:find_file_by_name).with(file_base_name).and_return(false)
         expect(client).to receive(:add_file).with(file_name, content).and_raise(error)
 
-        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
         expect(r.success).to be_nil
         expect(r.failure).to eq error
       end
@@ -197,7 +198,7 @@ RSpec.describe CrowdIn::Adapter do
         expect(client).to receive(:download_source_file).with(file1_id).and_return(existing_content)
         expect(client).to receive(:update_file).with(file1_id, content).and_return(nil)
 
-        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
         expect(r.success).to be_nil
         expect(r.failure).to be_nil
       end
@@ -207,7 +208,7 @@ RSpec.describe CrowdIn::Adapter do
         expect(client).to receive(:download_source_file).with(file1_id).and_return(existing_content)
         expect(client).not_to receive(:update_file)
 
-        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
         expect(r.success).to be_nil
         expect(r.failure).to be_nil
       end
@@ -217,7 +218,7 @@ RSpec.describe CrowdIn::Adapter do
         expect(client).to receive(:download_source_file).with(file1_id).and_return(existing_content)
         expect(client).not_to receive(:update_file)
 
-        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
         expect(r.success).to be_nil
         expect(r.failure).to be_nil
       end
@@ -227,7 +228,7 @@ RSpec.describe CrowdIn::Adapter do
         expect(client).to receive(:download_source_file).with(file1_id).and_return(existing_content)
         expect(client).not_to receive(:update_file)
 
-        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
         expect(r.success).to be_nil
         expected_error = CrowdIn::FileMethods::FilesError.new({ file1_id => "Could not find #{object_type} #{object_id}" })
         expect(r.failure).to eq expected_error
@@ -237,7 +238,7 @@ RSpec.describe CrowdIn::Adapter do
         expect(client).to receive(:download_source_file).with(file1_id).and_raise(error)
         expect(client).not_to receive(:update_file)
 
-        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
         expect(r.success).to be_nil
         expect(r.failure).to eq error
       end
@@ -247,7 +248,7 @@ RSpec.describe CrowdIn::Adapter do
         expect(client).to receive(:download_source_file).with(file1_id).and_return(existing_content)
         expect(client).to receive(:update_file).with(file1_id, content).and_raise(error)
 
-        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
         expect(r.success).to be_nil
         expect(r.failure).to eq error
       end
@@ -263,7 +264,7 @@ RSpec.describe CrowdIn::Adapter do
         expect(client).to receive(:find_file_by_name).with(file_base_name).and_return(false)
         expect(client).to receive(:add_file).with(file_name, content).and_return(nil)
 
-        r = subject.upload_attributes_to_translate(object_type, object_id, nil, attributes, params)
+        r = subject.upload_attributes_to_translate(object_type, object_id, nil, attributes, options)
         expect(r.success).to be_nil
         expect(r.failure).to be_nil
       end
@@ -274,9 +275,46 @@ RSpec.describe CrowdIn::Adapter do
       expect(client).not_to receive(:add_file)
       expect(client).not_to receive(:update_file)
 
-      r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, params)
+      r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
       expect(r.success).to be_nil
       expect(r.failure).to eq error
+    end
+
+    context "with a namespace" do
+      let(:namespace) { "namespace" }
+      let(:directory) { 123 }
+      let(:options) { { translated_attribute_params: params, namespace: [namespace] } }
+
+      it "adds a new file under that namespace when namespace already exists" do
+        expect(client).to receive(:find_file_by_name).with(file_base_name).and_return(false)
+        expect(client).to receive(:find_directory_by_name).with(namespace).and_return(directory)
+        expect(client).not_to receive(:add_directory)
+        expect(client).to receive(:add_file).with(file_name, content, directory).and_return(nil)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
+        expect(r.success).to be_nil
+        expect(r.failure).to be_nil
+      end
+
+      it "adds a new file under that namespace when namespace doesn't exists" do
+        expect(client).to receive(:find_file_by_name).with(file_base_name).and_return(false)
+        expect(client).to receive(:find_directory_by_name).with(namespace).and_return(false)
+        expect(client).to receive(:add_directory).with(namespace).and_return(directory)
+        expect(client).to receive(:add_file).with(file_name, content, directory).and_return(nil)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
+        expect(r.success).to be_nil
+        expect(r.failure).to be_nil
+      end
+
+      it "returns failures when adding file errors" do
+        expect(client).to receive(:find_file_by_name).with(file_base_name).and_return(false)
+        expect(client).to receive(:find_directory_by_name).with(namespace).and_raise(error)
+
+        r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
+        expect(r.success).to be_nil
+        expect(r.failure).to eq error
+      end
     end
   end
 end

@@ -26,7 +26,13 @@ module Mobility
           # Asynchronously upload attributes for translations
           # Include a delay so that multiple edits to the same object can be 'de-duped' in the async job.
           I18nSonder::Workers::UploadSourceStringsWorker.perform_in(
-              UPLOAD_TRANSLATION_DELAY, model.class.name, model[:id], translated_attribute_params
+              UPLOAD_TRANSLATION_DELAY,
+              model.class.name,
+              model[:id],
+              {
+                translated_attribute_params: translated_attribute_params,
+                namespace: namespace
+              }
           )
         end
 
@@ -34,6 +40,12 @@ module Mobility
       end
 
       private
+
+      def namespace
+        if model.class.method_defined?(:namespace_for_translation)
+          model.namespace_for_translation
+        end
+      end
 
       # Only upload for translation if:
       # 1) we are writing content in the default locale

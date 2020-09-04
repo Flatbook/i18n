@@ -22,17 +22,20 @@ module CrowdIn
     # which we store in the CrowdIn translation file and used to resolve duplicates.
     # Can be nil when the object has no +updated_at+ column.
     # +attributes+ - key value pairs of attribute name to attribute values in english to translate
-    # +attribute_params+ - optional params per attribute_key.
-    # +attribute_params[:split_into_sentences]+ - indicates whether to split this attribute value into sentences
-    # on upload to CrowdIn. This allows for greater de-duplication, but can't be done with text that is heavily
-    # templated, as an example, since we can break sentences across template format tags.
+    # +options+
+    #   +attribute_params+ - optional params per attribute_key.
+    #     +attribute_params[:split_into_sentences]+ - indicates whether to split this attribute
+    #     value into sentences on upload to CrowdIn. This allows for greater de-duplication,
+    #     but can't be done with text that is heavily templated, as an example,
+    #     since we can break sentences across template format tags.
+    #   +namespace+ - optional array specifying the directory to upload source strings to.
     #
     # For objects that already have a translation file in CrowdIn, we simple replace its content if the current
     # +updated_at+ timestamp is later than what is present in CrowdIn.
     #
     # The returned +ReturnObject.failure+ is non-empty if there are errors.
     # The returned +ReturnObject.success+ is +nil+ regardless of success/failure.
-    def upload_attributes_to_translate(object_type, object_id, updated_at, attributes, attribute_params)
+    def upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
       # Find the CrowdIn File corresponding to object.
       to_return = ReturnObject.new(nil, nil)
       return to_return if attributes.empty?
@@ -40,7 +43,9 @@ module CrowdIn
         file_name = file_name(object_type, object_id)
         file_base_name = File.basename(file_name, ".*")
         file_id = @client.find_file_by_name(file_base_name)
-        file_content = file_content_for_translations(object_type, object_id, updated_at, attributes, attribute_params)
+        file_content = file_content_for_translations(
+          object_type, object_id, updated_at, attributes, options[:translated_attribute_params]
+        )
 
         if file_id && updated_at.present?
           # If file exists, check updated timestamps, and update only if we don't have the latest timestamp's attributes
@@ -58,7 +63,14 @@ module CrowdIn
           end
         else
           # If file doesn't exist for object, create it with attributes to translate
-          @client.add_file(file_name, file_content)
+          if options.key?(:namespace)
+            dir_name = options[:namespace].last
+            directory = @client.find_directory_by_name(dir_name)
+            directory = @client.add_directory(dir_name) unless directory
+            @client.add_file(file_name, file_content, directory)
+          else
+            @client.add_file(file_name, file_content)
+          end
         end
       rescue CrowdIn::Client::Errors::Error => e
         ReturnObject.new(nil, e)
