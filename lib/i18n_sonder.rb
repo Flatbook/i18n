@@ -37,5 +37,10 @@ module I18nSonder
        config_val = I18nSonder.configuration.languages_to_translate
        config_val.present? ? config_val : I18n.available_locales
     end
+
+    def apply_duplicate_translations_on_upload
+      config_val = I18nSonder.configuration.apply_duplicate_translations_on_upload
+      config_val.present? ? config_val : false
+    end
   end
 end

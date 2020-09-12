@@ -8,7 +8,13 @@ RSpec.describe Mobility::Plugins::UploadForTranslation do
   let(:id) { 1 }
   let(:attribute_params) { { "title" => {}, "content" => { split_sentences: false } } }
   let(:namespace) { nil }
-  let(:options) { { translated_attribute_params: attribute_params, namespace: namespace } }
+  let(:options) {
+    {
+      translated_attribute_params: attribute_params,
+      namespace: namespace,
+      handle_duplicates: false
+    }
+  }
   let(:instance) { Post.new(id: id, title: "T1", content: "some content", published: true) }
 
   it "calls async worker with correct params and delay on creation" do

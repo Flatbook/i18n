@@ -31,7 +31,8 @@ module Mobility
               model[:id],
               {
                 translated_attribute_params: translated_attribute_params,
-                namespace: namespace
+                namespace: namespace,
+                handle_duplicates: I18nSonder.apply_duplicate_translations_on_upload
               }
           )
         end
