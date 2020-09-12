@@ -7,6 +7,7 @@ require 'mobility/plugins/locale_optimized_query'
 require 'mobility/plugins/upload_for_translation'
 require 'i18n_sonder/workers/sync_approved_translations_worker'
 require 'i18n_sonder/workers/upload_source_strings_worker'
+require "i18n_sonder/railtie" if defined?(Rails)
 
 module I18nSonder
   class << self

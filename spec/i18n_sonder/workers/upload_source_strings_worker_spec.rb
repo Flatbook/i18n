@@ -38,11 +38,6 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
       expect(I18nSonder).to receive(:localization_provider).and_return(adapter)
 
       allow(model).to receive(:find).with(id).and_return(model_instance)
-      allow(subject).to receive(:translation_table_name).and_return("t")
-      allow(model).to receive(:joins).and_return(model)
-      allow(model).to receive(:select).and_return(model)
-      allow(model).to receive(:where).and_return(model)
-      allow(model).to receive(:order).and_return(duplicates)
       allow(model_instance).to receive(:has_attribute?).with(:updated_at).and_return(has_updated_at)
       allow(model_instance).to receive(:id).and_return(id)
     end
@@ -110,6 +105,15 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
     end
 
     context "with duplicates" do
+      before do
+        allow(subject).to receive(:translation_table_name).and_return("t")
+        allow(model).to receive(:joins).and_return(model)
+        allow(model).to receive(:select).and_return(model)
+        allow(model).to receive(:where).and_return(model)
+        allow(model).to receive(:order).and_return(duplicates)
+      end
+
+      let(:options) { { translated_attribute_params: attribute_params, handle_duplicates: true } }
       let(:translation1) { create_translation("french val 1", "fr") }
       let(:translation2) { create_translation("french val 3", "fr") }
       let(:translation3) { create_translation("spanish val 1", "es") }
