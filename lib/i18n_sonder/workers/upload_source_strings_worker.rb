@@ -32,11 +32,10 @@ module I18nSonder
         object = klass.find(object_id)
         if object.present?
           updated_at = object.has_attribute?(:updated_at) ? object.updated_at.to_i : nil
-          attributes_to_translate = handle_duplicates(
-              object,
-              klass,
-              object.attributes.slice(*options[:translated_attribute_params]&.keys)
-          )
+          attributes_to_translate = object.attributes.slice(*options[:translated_attribute_params]&.keys)
+          if options[:handle_duplicates]
+            attributes_to_translate = handle_duplicates(object, klass, attributes_to_translate)
+          end
 
           @logger.info("#{@log_pre} Uploading attributes #{attributes_to_translate.keys} to translate for #{object_type} #{object_id}")
           result = localization_provider.upload_attributes_to_translate(

@@ -7,6 +7,7 @@ require 'mobility/plugins/locale_optimized_query'
 require 'mobility/plugins/upload_for_translation'
 require 'i18n_sonder/workers/sync_approved_translations_worker'
 require 'i18n_sonder/workers/upload_source_strings_worker'
+require "i18n_sonder/railtie"
 
 module I18nSonder
   class << self
@@ -35,6 +36,11 @@ module I18nSonder
     def languages_to_translate
        config_val = I18nSonder.configuration.languages_to_translate
        config_val.present? ? config_val : I18n.available_locales
+    end
+
+    def apply_duplicate_translations_on_upload
+      config_val = I18nSonder.configuration.apply_duplicate_translations_on_upload
+      config_val.present? ? config_val : false
     end
   end
 end
