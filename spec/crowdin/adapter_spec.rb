@@ -45,6 +45,7 @@ RSpec.describe CrowdIn::Adapter do
     it "returns translations for only completely approved files" do
       expect(client).to receive(:language_status).with(language).and_return(status)
       expect(client).to receive(:export_file).with(file1_id, language).and_return(raw_translations_1)
+      expect(client).to receive(:export_file).with(file2_id, language).and_return(raw_translations_2)
       expect(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
       expect(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
 
@@ -56,18 +57,49 @@ RSpec.describe CrowdIn::Adapter do
     it "returns failed files when some approved files fail export" do
       expect(client).to receive(:language_status).with(language).and_return(status)
       expect(client).to receive(:export_file).with(file1_id, language).and_raise(error)
+      expect(client).to receive(:export_file).with(file2_id, language).and_return(raw_translations_2)
       expect(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
       expect(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
 
       r = subject.translations(language)
       expect(r.success).to eq(expected_output.except("Model"))
       expect(r.failure).to eq(CrowdIn::FileMethods::FilesError.new({file1_id => error.to_s }) )
-
     end
 
     it "returns overall failure if we fail to fetch language status" do
       expect(client).to receive(:language_status).with(language).and_raise(error)
       r = subject.translations(language)
+      expect(r.success).to eq({})
+      expect(r.failure).to eq error
+    end
+  end
+
+  context "#approved_translations" do
+    it "returns translations for only completely approved files" do
+      expect(client).to receive(:language_status).with(language).and_return(status)
+      expect(client).to receive(:export_file).with(file1_id, language).and_return(raw_translations_1)
+      expect(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
+      expect(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
+
+      r = subject.approved_translations(language)
+      expect(r.success).to eq expected_output
+      expect(r.failure).to be_nil
+    end
+
+    it "returns failed files when some approved files fail export" do
+      expect(client).to receive(:language_status).with(language).and_return(status)
+      expect(client).to receive(:export_file).with(file1_id, language).and_raise(error)
+      expect(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
+      expect(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
+
+      r = subject.approved_translations(language)
+      expect(r.success).to eq(expected_output.except("Model"))
+      expect(r.failure).to eq(CrowdIn::FileMethods::FilesError.new({file1_id => error.to_s }) )
+    end
+
+    it "returns overall failure if we fail to fetch language status" do
+      expect(client).to receive(:language_status).with(language).and_raise(error)
+      r = subject.approved_translations(language)
       expect(r.success).to eq({})
       expect(r.failure).to eq error
     end
