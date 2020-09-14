@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe I18nSonder::Workers::SyncApprovedTranslationsWorker do
+RSpec.describe I18nSonder::Workers::SyncTranslations do
   let(:adapter) { instance_double(CrowdIn::Adapter) }
   let(:logger) do
     stub_const 'TestLogger', Class.new
@@ -8,7 +8,8 @@ RSpec.describe I18nSonder::Workers::SyncApprovedTranslationsWorker do
   end
 
   subject do
-    described_class.new.tap do |s|
+    Class.new.tap do |s|
+      s.extend(I18nSonder::Workers::SyncTranslations)
       s.instance_variable_set(:@logger, logger)
     end
   end
@@ -28,7 +29,7 @@ RSpec.describe I18nSonder::Workers::SyncApprovedTranslationsWorker do
   let(:successful_syncs) { { "Model" => { "1" => [:fr],  "3" => [:fr] }, "AnotherModel" => { "4" => [:fr] } } }
   let(:error) { CrowdIn::Client::Errors::Error.new(404, "not found") }
 
-  context "#perform" do
+  context "#sync" do
     let(:translations_response) { CrowdIn::Adapter::ReturnObject.new(translations, nil) }
     let(:cleanup_response) { CrowdIn::Adapter::ReturnObject.new(nil, nil) }
 
@@ -38,15 +39,30 @@ RSpec.describe I18nSonder::Workers::SyncApprovedTranslationsWorker do
       expect(I18nSonder).to receive(:localization_provider).and_return(adapter)
     end
 
-    it "fetches translations, writes them to the DB, and then cleans up successful syncs" do
-      expect(adapter).to receive(:translations).with('fr').and_return(translations_response)
-      expect(model).to receive(:update).with('1', translation1['1'])
-      expect(model).to receive(:update).with('3', translation2['3'])
-      expect(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
-      expect(adapter).to receive(:cleanup_translations).with(successful_syncs, [:fr]).and_return(cleanup_response)
-      expect(logger).to receive(:info).exactly(5).times
-      expect(logger).not_to receive(:error)
-      subject.perform
+    context "all translations" do
+      it "fetches translations, and writes them to the DB" do
+        expect(adapter).to receive(:translations).with('fr').and_return(translations_response)
+        expect(model).to receive(:update).with('1', translation1['1'])
+        expect(model).to receive(:update).with('3', translation2['3'])
+        expect(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
+        expect(adapter).not_to receive(:cleanup_translations)
+        expect(logger).to receive(:info).exactly(4).times
+        expect(logger).not_to receive(:error)
+        subject.sync(approved_translations_only: false)
+      end
+    end
+
+    context "approved translations only" do
+      it "fetches translations, and writes them to the DB, and then cleans up successful syncs" do
+        expect(adapter).to receive(:approved_translations).with('fr').and_return(translations_response)
+        expect(model).to receive(:update).with('1', translation1['1'])
+        expect(model).to receive(:update).with('3', translation2['3'])
+        expect(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
+        expect(adapter).to receive(:cleanup_translations).with(successful_syncs, [:fr]).and_return(cleanup_response)
+        expect(logger).to receive(:info).exactly(5).times
+        expect(logger).not_to receive(:error)
+        subject.sync(approved_translations_only: true)
+      end
     end
 
     context "with errors on fetching transaltions" do
@@ -58,10 +74,9 @@ RSpec.describe I18nSonder::Workers::SyncApprovedTranslationsWorker do
         it "does not write translations if adapter returns error with empty translations" do
           expect(adapter).to receive(:translations).with('fr').and_return(translations_response)
           expect(model).not_to receive(:update)
-          expect(adapter).to receive(:cleanup_translations).and_return(cleanup_response)
-          expect(logger).to receive(:info).exactly(2).times
+          expect(logger).to receive(:info).exactly(1).times
           expect(logger).to receive(:error).exactly(1).times
-          subject.perform
+          subject.sync(approved_translations_only: false)
         end
       end
 
@@ -71,10 +86,9 @@ RSpec.describe I18nSonder::Workers::SyncApprovedTranslationsWorker do
         it "writes valid translations and logs for error" do
           expect(adapter).to receive(:translations).with('fr').and_return(translations_response)
           expect(model).to receive(:update).with('1', translation1['1'])
-          expect(adapter).to receive(:cleanup_translations).and_return(cleanup_response)
-          expect(logger).to receive(:info).exactly(3).times
+          expect(logger).to receive(:info).exactly(2).times
           expect(logger).to receive(:error).exactly(1).times
-          subject.perform
+          subject.sync(approved_translations_only: false)
         end
       end
     end
@@ -92,25 +106,23 @@ RSpec.describe I18nSonder::Workers::SyncApprovedTranslationsWorker do
         allow(model).to receive(:update).with('3', translation2['3']).and_raise(error)
         allow(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
 
-        expect(adapter).to receive(:cleanup_translations).with({}, [:fr]).and_return(cleanup_response)
         allow(logger).to receive(:info)
-        expect(logger).to receive(:error).with("[I18nSonder::SyncApprovedTranslationsWorker] #{error}").exactly(1).times
-        subject.perform
+        expect(logger).to receive(:error).with("[Class] #{error}").exactly(1).times
+        subject.sync(approved_translations_only: false)
       end
     end
 
     context "with errors on cleaning up transaltions" do
       it "doesn't affect execution" do
-        expect(adapter).to receive(:translations).with('fr').and_return(translations_response)
+        expect(adapter).to receive(:approved_translations).with('fr').and_return(translations_response)
         expect(model).to receive(:update).with('1', translation1['1'])
         expect(model).to receive(:update).with('3', translation2['3'])
         expect(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
         expect(adapter).to receive(:cleanup_translations).and_return(CrowdIn::Adapter::ReturnObject.new(nil, error))
         expect(logger).to receive(:info).exactly(5).times
-        expect(logger).to receive(:error).with("[I18nSonder::SyncApprovedTranslationsWorker] #{error}").exactly(1).times
-        subject.perform
+        expect(logger).to receive(:error).with("[Class] #{error}").exactly(1).times
+        subject.sync(approved_translations_only: true)
       end
     end
   end
 end
-

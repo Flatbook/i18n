@@ -79,7 +79,7 @@ module CrowdIn
       end
     end
 
-    # Given a language, fetch approved translations.
+    # Given a language, fetch all translations.
     # Returns Struct of approved translations hash, and/or failures.
     # Approved translations have the format:
     # {
@@ -95,6 +95,31 @@ module CrowdIn
     # 1) +CrowdIn::Client::Errors::Error+ if we fail to fetch the translation status of files
     # 2) +CrowdIn::FileMethods::FilesError+ if any individual files fail on export
     def translations(language)
+      begin
+        file_status_list = @client.language_status(language)
+        file_ids = file_status_list.map { |f| f['file_id'] }
+        translations_for_files(file_ids, language)
+      rescue CrowdIn::Client::Errors::Error => e
+        ReturnObject.new({}, e)
+      end
+    end
+
+    # Given a language, fetch approved translations.
+    # Returns Struct of approved translations hash, and/or failures.
+    # Approved translations have the format:
+    # {
+    #   model: {
+    #     id: {
+    #       field_1: val1,
+    #       field_2: val2
+    #     }
+    #   }
+    # }
+    #
+    # Failures can be:
+    # 1) +CrowdIn::Client::Errors::Error+ if we fail to fetch the translation status of files
+    # 2) +CrowdIn::FileMethods::FilesError+ if any individual files fail on export
+    def approved_translations(language)
       begin
         file_status_list = @client.language_status(language)
       rescue CrowdIn::Client::Errors::Error => e

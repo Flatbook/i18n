@@ -1,8 +1,9 @@
 require 'sidekiq'
+require 'i18n_sonder/workers/sync_translations'
 
 module I18nSonder
   module Workers
-    class SyncApprovedTranslationsWorker
+    class SyncTranslationsWorker
       include Sidekiq::Worker
       include I18nSonder::Workers::SyncTranslations
 
@@ -13,7 +14,7 @@ module I18nSonder
       end
 
       def perform
-        sync(approved_translations_only: true)
+        sync(approved_translations_only: false)
       end
     end
   end
