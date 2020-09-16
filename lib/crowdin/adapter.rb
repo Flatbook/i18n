@@ -63,7 +63,7 @@ module CrowdIn
           end
         else
           # If file doesn't exist for object, create it with attributes to translate
-          if options.key?(:namespace)
+          if options.key?(:namespace) && options[:namespace].present?
             dir_name = options[:namespace].last
             directory = @client.find_directory_by_name(dir_name)
             directory = @client.add_directory(dir_name) unless directory

@@ -347,6 +347,36 @@ RSpec.describe CrowdIn::Adapter do
         expect(r.success).to be_nil
         expect(r.failure).to eq error
       end
+
+      context "that is empty" do
+        let(:options) { { translated_attribute_params: params, namespace: [] } }
+
+        it "adds a new file without namespace" do
+          expect(client).to receive(:find_file_by_name).with(file_base_name).and_return(false)
+          expect(client).not_to receive(:find_directory_by_name)
+          expect(client).not_to receive(:add_directory)
+          expect(client).to receive(:add_file).with(file_name, content).and_return(nil)
+
+          r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
+          expect(r.success).to be_nil
+          expect(r.failure).to be_nil
+        end
+      end
+
+      context "that is nil" do
+        let(:options) { { translated_attribute_params: params, namespace: nil } }
+
+        it "adds a new file without namespace" do
+          expect(client).to receive(:find_file_by_name).with(file_base_name).and_return(false)
+          expect(client).not_to receive(:find_directory_by_name)
+          expect(client).not_to receive(:add_directory)
+          expect(client).to receive(:add_file).with(file_name, content).and_return(nil)
+
+          r = subject.upload_attributes_to_translate(object_type, object_id, updated_at, attributes, options)
+          expect(r.success).to be_nil
+          expect(r.failure).to be_nil
+        end
+      end
     end
   end
 end

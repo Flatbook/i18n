@@ -36,7 +36,7 @@ namespace :i18n_sonder do
               translated_attribute_params[attribute_name] = upload_options.is_a?(Hash) ? upload_options : {}
             end
 
-            namespace = obj.namespace_for_translation if klass.method_defined?(:namespace_for_translation)
+            namespace = obj.namespace_for_translation.compact if klass.method_defined?(:namespace_for_translation)
 
             uploader.perform(
                 obj.class.name,
