@@ -44,7 +44,7 @@ module Mobility
 
       def namespace
         if model.class.method_defined?(:namespace_for_translation)
-          model.namespace_for_translation
+          model.namespace_for_translation.compact
         end
       end
 
