@@ -19,7 +19,8 @@ module I18nSonder
         model[:id],
         {
           translated_attribute_params: translated_attribute_params,
-          namespace: namespace
+          namespace: namespace,
+          handle_duplicates: I18nSonder.apply_duplicate_translations_on_upload
         }
       )
     end
@@ -41,7 +42,7 @@ module I18nSonder
     def namespace
       return unless model.class.method_defined?(:namespace_for_translation)
 
-      model.namespace_for_translation
+      model.namespace_for_translation.compact
     end
 
     # Only upload for translation if:
