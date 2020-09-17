@@ -13,7 +13,7 @@ module Mobility
       end
 
       def write(locale, value, options = {})
-        I18nSonder::UploadSourceStrings.upload(model, locale, value, attribute)
+        I18nSonder::UploadSourceStrings.new(model).upload(locale, value, attribute)
 
         super
       end

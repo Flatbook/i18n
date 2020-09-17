@@ -1,9 +1,15 @@
 module I18nSonder
   class UploadSourceStrings
+    attr_reader :model
+
     UPLOAD_TRANSLATION_DELAY = (ENV["UPLOAD_FOR_TRANSLATION_DELAY_MIN"] || 5).minutes
 
-    def self.upload(model, locale, value, attribute, options = {})
-      return unless should_upload_for_translation?(model, locale, value, attribute)
+    def initialize(model)
+      @model = model
+    end
+
+    def upload(locale, value, attribute, options = {})
+      return unless should_upload_for_translation?(locale, value, attribute)
 
       # Asynchronously upload attributes for translations
       # Include a delay so that multiple edits to the same object can be 'de-duped' in the async job.
@@ -12,15 +18,15 @@ module I18nSonder
         model.class.name,
         model[:id],
         {
-          translated_attribute_params: get_translated_attribute_params(model),
-          namespace: namespace(model)
+          translated_attribute_params: translated_attribute_params,
+          namespace: namespace
         }
       )
     end
 
     private
 
-    def self.get_translated_attribute_params(model)
+    def translated_attribute_params
       # Get translated attributes and each attribute's params for uploading translations
       translated_attribute_names = model.translated_attribute_names
       translated_attribute_params = {}
@@ -32,10 +38,10 @@ module I18nSonder
       translated_attribute_params
     end
 
-    def self.namespace(model)
-      if model.class.method_defined?(:namespace_for_translation)
-        model.namespace_for_translation
-      end
+    def namespace
+      return unless model.class.method_defined?(:namespace_for_translation)
+
+      model.namespace_for_translation
     end
 
     # Only upload for translation if:
@@ -43,7 +49,7 @@ module I18nSonder
     # 2) the new value being written is different to the already existing value.
     # 3) there is an ID present for the model
     # 4) if this model is allowed for translation
-    def self.should_upload_for_translation?(model, locale, value, attribute)
+    def should_upload_for_translation?(locale, value, attribute)
       is_default_locale = locale == I18n.default_locale
 
       old_value = model.read_attribute(attribute)
