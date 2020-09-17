@@ -23,29 +23,33 @@ namespace :i18n_sonder do
 
       klass.in_batches.each do |batch|
         batch.each do |obj|
-          # Check if model has the method defined and if it evaluates to true
-          model_allowed_for_translation = !klass.method_defined?(:allowed_for_translation?) ||
-              obj.allowed_for_translation?
+          begin
+            # Check if model has the method defined and if it evaluates to true
+            model_allowed_for_translation = !klass.method_defined?(:allowed_for_translation?) ||
+                obj.allowed_for_translation?
 
-          if model_allowed_for_translation
-            # Get translated attributes, and each attribute's params for uploading translations
-            translated_attribute_names = klass.translated_attribute_names
-            translated_attribute_params = {}
-            translated_attribute_names.each do |attribute_name|
-              upload_options = obj.public_send("#{attribute_name}_backend").options[:upload_for_translation]
-              translated_attribute_params[attribute_name] = upload_options.is_a?(Hash) ? upload_options : {}
+            if model_allowed_for_translation
+              # Get translated attributes, and each attribute's params for uploading translations
+              translated_attribute_names = klass.translated_attribute_names
+              translated_attribute_params = {}
+              translated_attribute_names.each do |attribute_name|
+                upload_options = obj.public_send("#{attribute_name}_backend").options[:upload_for_translation]
+                translated_attribute_params[attribute_name] = upload_options.is_a?(Hash) ? upload_options : {}
+              end
+
+              namespace = obj.namespace_for_translation.compact if klass.method_defined?(:namespace_for_translation)
+
+              uploader.perform(
+                  obj.class.name,
+                  obj[:id],
+                  {
+                    translated_attribute_params: translated_attribute_params,
+                    namespace: namespace
+                  }
+              )
             end
-
-            namespace = obj.namespace_for_translation.compact if klass.method_defined?(:namespace_for_translation)
-
-            uploader.perform(
-                obj.class.name,
-                obj[:id],
-                {
-                  translated_attribute_params: translated_attribute_params,
-                  namespace: namespace
-                }
-            )
+          rescue StandardError => error
+            Rails.logger.error("[upload_source_strings_for_translation] Failed for #{klass} #{obj.id} with #{error}")
           end
         end
 
