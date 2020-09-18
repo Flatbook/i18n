@@ -8,7 +8,8 @@ require 'mobility/plugins/upload_for_translation'
 require 'i18n_sonder/workers/sync_translations_worker'
 require 'i18n_sonder/workers/sync_approved_translations_worker'
 require 'i18n_sonder/workers/upload_source_strings_worker'
-require "i18n_sonder/railtie"
+require 'i18n_sonder/upload_source_strings'
+require 'i18n_sonder/railtie'
 
 module I18nSonder
   class << self

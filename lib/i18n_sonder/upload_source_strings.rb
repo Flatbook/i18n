@@ -8,9 +8,7 @@ module I18nSonder
       @model = model
     end
 
-    def upload(locale, value, attribute, options = {})
-      return unless should_upload_for_translation?(locale, value, attribute)
-
+    def upload(options = {})
       # Asynchronously upload attributes for translations
       # Include a delay so that multiple edits to the same object can be 'de-duped' in the async job.
       I18nSonder::Workers::UploadSourceStringsWorker.perform_in(
@@ -43,26 +41,6 @@ module I18nSonder
       return unless model.class.method_defined?(:namespace_for_translation)
 
       model.namespace_for_translation.compact
-    end
-
-    # Only upload for translation if:
-    # 1) we are writing content in the default locale
-    # 2) the new value being written is different to the already existing value.
-    # 3) there is an ID present for the model
-    # 4) if this model is allowed for translation
-    def should_upload_for_translation?(locale, value, attribute)
-      is_default_locale = locale == I18n.default_locale
-
-      old_value = model.read_attribute(attribute)
-      is_different_new_value = value != old_value
-
-      model_id_present = model[:id].present?
-
-      # Check if model has the method defined and if it evaluates to true
-      model_allowed_for_translation = !model.class.method_defined?(:allowed_for_translation?) ||
-          model.allowed_for_translation?
-
-      is_default_locale && is_different_new_value && model_id_present && model_allowed_for_translation
     end
   end
 end

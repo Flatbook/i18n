@@ -137,17 +137,17 @@ module CrowdIn
       translations_for_files([file_id], language)
     end
 
-    # Given a hash of objects that have been successfully sync'd, and all the +available_locales+,
-    # delete all the source files that have successfully been sync'd in every locale.
+    # Given a list of objects to delete and all the +available locales+,
+    # delete all the source files that have been sync'd in every locale.
     #
     # Returns +CrowdIn::FileMethods::FilesError+ with failed files for those that fail deletion.
-    def cleanup_translations(objects_syncd, available_locales)
+    def cleanup_translations(objects_to_delete, available_locales)
       sorted_languages = available_locales.sort
       files_to_cleanup = []
 
-      objects_syncd.each do |model_name, successful_languages_by_id|
-        successful_languages_by_id.each do |id, successful_languages|
-          if sorted_languages == successful_languages.sort
+      objects_to_delete.each do |model_name, languages_by_id|
+        languages_by_id.each do |id, languages|
+          if sorted_languages == languages.sort
             file_name = file_name(model_name, id)
             file_base_name = File.basename(file_name, ".*")
             files_to_cleanup.append(@client.find_file_by_name(file_base_name))
@@ -160,6 +160,7 @@ module CrowdIn
       else
         failed_files = nil
       end
+
       ReturnObject.new(nil, failed_files)
     end
 
