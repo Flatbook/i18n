@@ -7,10 +7,10 @@ module I18nSonder
     end
 
     def delete
-      model_name = instance.class.name
-      id = instance.id
+      return if instance.blank?
+
       localization_provider = I18nSonder.localization_provider
-      cleanup_result = localization_provider.delete_source_files_for_model(model_name, id)
+      cleanup_result = localization_provider.delete_source_files_for_model(instance)
       handle_failure(cleanup_result.failure)
     end
 

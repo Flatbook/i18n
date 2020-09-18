@@ -137,10 +137,12 @@ module CrowdIn
       translations_for_files([file_id], language)
     end
 
-    # Given a model_name and id, delete all the source files that have been sync'd in every locale.
+    # Given a model_name and id, delete all the source files that have been sync'd.
     #
     # Returns +CrowdIn::FileMethods::FilesError+ with failed files for those that fail deletion.
-    def delete_source_files_for_model(model_name, id)
+    def delete_source_files_for_model(model)
+      model_name = model.class.name
+      id = model.id
       files_to_cleanup = files_by_model_and_id(model_name, id)
 
       delete_source_files(files_to_cleanup)
