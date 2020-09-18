@@ -40,6 +40,7 @@ RSpec.describe CrowdIn::Adapter do
         "ModelWithoutUpdated" => { "1" => { "field1" => "val 1", "field2" => "val 2" } }
     }
   }
+  let(:instance) { Post.new(id: "1", title: "T1", content: "some content", published: true) }
 
   context "#translations" do
     it "returns translations for only completely approved files" do
@@ -135,10 +136,40 @@ RSpec.describe CrowdIn::Adapter do
     end
   end
 
-  context "#delete_source_files" do
-  end
-
   context "#delete_source_files_for_model" do
+    it "deletes files for specified model" do
+      expect(client).to receive(:find_file_by_name).with("Post-1").and_return(file1_id)
+      expect(client).to receive(:delete_file).with(file1_id)
+
+      r = subject.delete_source_files_for_model(instance)
+
+      expect(r.success).to be_nil
+      expect(r.failure).to be_nil
+    end
+
+    it "returns failed file to delete if one failed deletion" do
+      expect(client).to receive(:find_file_by_name).with("Post-1").and_return(file1_id)
+      expect(client).to receive(:delete_file).with(file1_id).and_raise(error)
+
+      r = subject.delete_source_files_for_model(instance)
+
+      expect(r.success).to be_nil
+      expect(r.failure).to eq(CrowdIn::FileMethods::FilesError.new({ file1_id => error.to_s }))
+    end
+
+    context "when instance is nil" do
+      let(:instance) { nil }
+
+      it "does nothing" do
+        expect(client).not_to receive(:find_file_by_name)
+        expect(client).not_to receive(:delete_file)
+
+        r = subject.delete_source_files_for_model(instance)
+
+        expect(r.success).to be_nil
+        expect(r.failure).to eq("Instance is nil")
+      end
+    end
   end
 
   context "#cleanup_translations" do
