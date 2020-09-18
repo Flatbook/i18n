@@ -13,9 +13,9 @@ module Mobility
       end
 
       def write(locale, value, options = {})
-        return unless should_upload_for_translation?(locale, value, attribute)
+        return unless should_upload_for_translation?(value, attribute)
 
-        I18nSonder::UploadSourceStrings.new(model).upload
+        I18nSonder::UploadSourceStrings.new(model).upload(locale)
 
         super
       end
@@ -23,23 +23,11 @@ module Mobility
       private
 
       # Only upload for translation if:
-      # 1) we are writing content in the default locale
-      # 2) the new value being written is different to the already existing value.
-      # 3) there is an ID present for the model
-      # 4) if this model is allowed for translation
-      def should_upload_for_translation?(locale, value, attribute)
-        is_default_locale = locale == I18n.default_locale
-
+      # 1) the new value being written is different to the already existing value
+      def should_upload_for_translation?(value, attribute)
         old_value = model.read_attribute(attribute)
-        is_different_new_value = value != old_value
 
-        model_id_present = model[:id].present?
-
-        # Check if model has the method defined and if it evaluates to true
-        model_allowed_for_translation = !model.class.method_defined?(:allowed_for_translation?) ||
-            model.allowed_for_translation?
-
-        is_default_locale && is_different_new_value && model_id_present && model_allowed_for_translation
+        value != old_value
       end
     end
   end
