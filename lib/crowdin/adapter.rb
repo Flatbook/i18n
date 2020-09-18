@@ -137,30 +137,34 @@ module CrowdIn
       translations_for_files([file_id], language)
     end
 
-    # Given a hash of objects that have been successfully sync'd, and all the +available_locales+,
-    # delete all the source files that have successfully been sync'd in every locale.
+    # Given a model_name and id, delete all the source files that have been sync'd.
     #
     # Returns +CrowdIn::FileMethods::FilesError+ with failed files for those that fail deletion.
-    def cleanup_translations(objects_syncd, available_locales)
+    def delete_source_files_for_model(model)
+      model_name = model.class.name
+      id = model.id
+      files_to_cleanup = files_by_model_and_id(model_name, id)
+
+      delete_source_files(files_to_cleanup)
+    end
+
+    # Given a list of objects to delete and all the +available locales+,
+    # delete all the source files that have been sync'd in every locale.
+    #
+    # Returns +CrowdIn::FileMethods::FilesError+ with failed files for those that fail deletion.
+    def cleanup_translations(objects_to_delete, available_locales)
       sorted_languages = available_locales.sort
       files_to_cleanup = []
 
-      objects_syncd.each do |model_name, successful_languages_by_id|
-        successful_languages_by_id.each do |id, successful_languages|
-          if sorted_languages == successful_languages.sort
-            file_name = file_name(model_name, id)
-            file_base_name = File.basename(file_name, ".*")
-            files_to_cleanup.append(@client.find_file_by_name(file_base_name))
+      objects_to_delete.each do |model_name, languages_by_id|
+        languages_by_id.each do |id, languages|
+          if sorted_languages == languages.sort
+            files_to_cleanup.append(files_by_model_and_id(model_name, id))
           end
         end
       end
 
-      if files_to_cleanup.present?
-        failed_files = safe_file_iteration(files_to_cleanup) { |file_id| @client.delete_file(file_id) }
-      else
-        failed_files = nil
-      end
-      ReturnObject.new(nil, failed_files)
+      delete_source_files(files_to_cleanup)
     end
 
     def cleanup_file(file_id)
@@ -169,6 +173,23 @@ module CrowdIn
     end
 
     private
+
+    def delete_source_files(files_to_cleanup)
+      if files_to_cleanup.present?
+        failed_files = safe_file_iteration(files_to_cleanup) { |file_id| @client.delete_file(file_id) }
+      else
+        failed_files = nil
+      end
+
+      ReturnObject.new(nil, failed_files)
+    end
+
+    def files_by_model_and_id(model_name, id)
+      file_name = file_name(model_name, id)
+      file_base_name = File.basename(file_name, ".*")
+
+      @client.find_file_by_name(file_base_name)
+    end
 
     def file_content_for_translations(object_type, object_id, updated_at, attributes, attribute_params)
       attributes_to_translate = attributes.inject({}) do |final_hash, (attribute_key, attribute_value)|

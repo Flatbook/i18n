@@ -135,6 +135,12 @@ RSpec.describe CrowdIn::Adapter do
     end
   end
 
+  context "#delete_source_files" do
+  end
+
+  context "#delete_source_files_for_model" do
+  end
+
   context "#cleanup_translations" do
     let(:syncd) { { "Model" => { "1" => [:fr], "2" => [:es, :fr], "3" => [:es, :fr] } } }
 

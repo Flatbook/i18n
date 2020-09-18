@@ -13,9 +13,21 @@ module Mobility
       end
 
       def write(locale, value, options = {})
-        I18nSonder::UploadSourceStrings.new(model).upload(locale, value, attribute)
+        return unless should_upload_for_translation?(value, attribute)
+
+        I18nSonder::UploadSourceStrings.new(model).upload(locale)
 
         super
+      end
+
+      private
+
+      # Only upload for translation if:
+      # 1) the new value being written is different to the already existing value
+      def should_upload_for_translation?(value, attribute)
+        old_value = model.read_attribute(attribute)
+
+        value != old_value
       end
     end
   end
