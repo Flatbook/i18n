@@ -135,13 +135,13 @@ RSpec.describe CrowdIn::Adapter do
     end
   end
 
+  context "#delete_source_files" do
+  end
+
+  context "#delete_source_files_for_model" do
+  end
+
   context "#cleanup_translations" do
-  end
-
-  context "#cleanup_all_translations" do
-  end
-
-  context "#cleanup_specific_translations" do
     let(:syncd) { { "Model" => { "1" => [:fr], "2" => [:es, :fr], "3" => [:es, :fr] } } }
 
     it "only deletes files for objects where all language translations have been sync'd" do
@@ -150,7 +150,7 @@ RSpec.describe CrowdIn::Adapter do
       expect(client).to receive(:delete_file).with(file2_id)
       expect(client).to receive(:delete_file).with(file3_id)
 
-      r = subject.cleanup_specific_translations(syncd, [:es, :fr])
+      r = subject.cleanup_translations(syncd, [:es, :fr])
       expect(r.success).to be_nil
       expect(r.failure).to be_nil
     end
@@ -161,7 +161,7 @@ RSpec.describe CrowdIn::Adapter do
       expect(client).to receive(:delete_file).with(file2_id)
       expect(client).to receive(:delete_file).with(file3_id).and_raise(error)
 
-      r = subject.cleanup_specific_translations(syncd, [:es, :fr])
+      r = subject.cleanup_translations(syncd, [:es, :fr])
       expect(r.success).to be_nil
       expect(r.failure).to eq(CrowdIn::FileMethods::FilesError.new({file3_id => error.to_s }))
     end
@@ -170,7 +170,7 @@ RSpec.describe CrowdIn::Adapter do
       expect(client).not_to receive(:find_file_by_name)
       expect(client).not_to receive(:delete_file)
 
-      r = subject.cleanup_specific_translations({}, [:es, :fr])
+      r = subject.cleanup_translations({}, [:es, :fr])
       expect(r.success).to be_nil
       expect(r.failure).to be_nil
     end

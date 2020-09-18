@@ -38,7 +38,7 @@ module I18nSonder
 
         if approved_translations_only
           @logger.info("[#{self.class.name}] Cleaning up translations")
-          cleanup_result = localization_provider.cleanup_specific_translations(successful_syncs, languages_to_translate)
+          cleanup_result = localization_provider.cleanup_translations(successful_syncs, languages_to_translate)
           handle_failure(cleanup_result.failure)
         end
       end
