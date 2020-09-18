@@ -8,13 +8,27 @@ module I18nSonder
       @model = model
     end
 
-    def upload(locale, options = {})
+    def upload_async(locale)
       return unless should_upload_for_translation?(locale)
 
       # Asynchronously upload attributes for translations
       # Include a delay so that multiple edits to the same object can be 'de-duped' in the async job.
       I18nSonder::Workers::UploadSourceStringsWorker.perform_in(
         UPLOAD_TRANSLATION_DELAY,
+        model.class.name,
+        model[:id],
+        {
+          translated_attribute_params: translated_attribute_params,
+          namespace: namespace,
+          handle_duplicates: I18nSonder.apply_duplicate_translations_on_upload
+        }
+      )
+    end
+
+    def upload(locale)
+      return unless should_upload_for_translation?(locale)
+
+      I18nSonder::Workers::UploadSourceStringsWorker.new.perform(
         model.class.name,
         model[:id],
         {

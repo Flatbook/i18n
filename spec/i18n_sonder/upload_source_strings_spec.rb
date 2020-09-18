@@ -20,9 +20,23 @@ RSpec.describe I18nSonder::UploadSourceStrings do
   let(:value) { nil }
   let(:attribute) { nil }
 
-  subject(:upload) { described_class.new(instance).upload(locale) }
-
   describe '#upload' do
+    subject(:upload) { described_class.new(instance).upload(locale) }
+
+    let(:worker_mock) { instance_double(I18nSonder::Workers::UploadSourceStringsWorker) }
+    let(:locale) { :en }
+
+    it "calls worker's perform synchronously with correct params" do
+      allow(worker_class_mock).to receive(:perform_in)
+      expect(I18nSonder::Workers::UploadSourceStringsWorker).to receive(:new).and_return(worker_mock)
+      expect(worker_mock).to receive(:perform).with('Post', id, options).once
+      upload
+    end
+  end
+
+  describe '#upload_async' do
+    subject(:upload) { described_class.new(instance).upload_async(locale) }
+
     it 'calls async worker with correct params and delay' do
       # worker will be called twice, once per translatable field
       expect(worker_class_mock).to(
