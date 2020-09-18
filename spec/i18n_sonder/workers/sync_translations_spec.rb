@@ -45,7 +45,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
         expect(model).to receive(:update).with('1', translation1['1'])
         expect(model).to receive(:update).with('3', translation2['3'])
         expect(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
-        expect(adapter).not_to receive(:cleanup_translations)
+        expect(adapter).not_to receive(:cleanup_specific_translations)
         expect(logger).to receive(:info).exactly(4).times
         expect(logger).not_to receive(:error)
         subject.sync(approved_translations_only: false)
@@ -58,7 +58,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
         expect(model).to receive(:update).with('1', translation1['1'])
         expect(model).to receive(:update).with('3', translation2['3'])
         expect(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
-        expect(adapter).to receive(:cleanup_translations).with(successful_syncs, [:fr]).and_return(cleanup_response)
+        expect(adapter).to receive(:cleanup_specific_translations).with(successful_syncs, [:fr]).and_return(cleanup_response)
         expect(logger).to receive(:info).exactly(5).times
         expect(logger).not_to receive(:error)
         subject.sync(approved_translations_only: true)
@@ -118,7 +118,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
         expect(model).to receive(:update).with('1', translation1['1'])
         expect(model).to receive(:update).with('3', translation2['3'])
         expect(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
-        expect(adapter).to receive(:cleanup_translations).and_return(CrowdIn::Adapter::ReturnObject.new(nil, error))
+        expect(adapter).to receive(:cleanup_specific_translations).and_return(CrowdIn::Adapter::ReturnObject.new(nil, error))
         expect(logger).to receive(:info).exactly(5).times
         expect(logger).to receive(:error).with("[Class] #{error}").exactly(1).times
         subject.sync(approved_translations_only: true)

@@ -7,15 +7,9 @@ module I18nSonder
     end
 
     def delete
-      model = instance.class.name
+      model_name = instance.class.name
       id = instance.id
-      localization_provider = I18nSonder.localization_provider
-      languages_to_translate = I18nSonder.languages_to_translate
-      synced_translations = { model => { id => [languages_to_translate] } }
-      cleanup_result = localization_provider.cleanup_translations(
-        synced_translations,
-        languages_to_translate
-      )
+      cleanup_result = localization_provider.cleanup_all_translations(model_name, id)
       handle_failure(cleanup_result.failure)
     end
 

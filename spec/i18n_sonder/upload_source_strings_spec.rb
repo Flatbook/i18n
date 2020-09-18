@@ -20,7 +20,7 @@ RSpec.describe I18nSonder::UploadSourceStrings do
   let(:value) { nil }
   let(:attribute) { nil }
 
-  subject(:upload) { described_class.new(instance).upload(locale, value, attribute) }
+  subject(:upload) { described_class.new(instance).upload(locale) }
 
   describe '#upload' do
     it 'calls async worker with correct params and delay' do
