@@ -141,9 +141,11 @@ module CrowdIn
     #
     # Returns +CrowdIn::FileMethods::FilesError+ with failed files for those that fail deletion.
     def delete_source_files_for_model(model)
+      return ReturnObject.new(nil, "Instance is nil") if model.blank?
+
       model_name = model.class.name
       id = model.id
-      files_to_cleanup = files_by_model_and_id(model_name, id)
+      files_to_cleanup = [file_by_model_and_id(model_name, id)]
 
       delete_source_files(files_to_cleanup)
     end
@@ -159,7 +161,7 @@ module CrowdIn
       objects_to_delete.each do |model_name, languages_by_id|
         languages_by_id.each do |id, languages|
           if sorted_languages == languages.sort
-            files_to_cleanup.append(files_by_model_and_id(model_name, id))
+            files_to_cleanup.append(file_by_model_and_id(model_name, id))
           end
         end
       end
@@ -184,7 +186,7 @@ module CrowdIn
       ReturnObject.new(nil, failed_files)
     end
 
-    def files_by_model_and_id(model_name, id)
+    def file_by_model_and_id(model_name, id)
       file_name = file_name(model_name, id)
       file_base_name = File.basename(file_name, ".*")
 

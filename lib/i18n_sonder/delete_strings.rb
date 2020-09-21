@@ -4,14 +4,14 @@ module I18nSonder
 
     def initialize(instance)
       @instance = instance
+      @logger = I18nSonder.logger
     end
 
     def delete
-      return if instance.blank?
-
       localization_provider = I18nSonder.localization_provider
       cleanup_result = localization_provider.delete_source_files_for_model(instance)
       handle_failure(cleanup_result.failure)
+      cleanup_result.failure
     end
 
     private
