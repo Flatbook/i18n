@@ -15,7 +15,7 @@ module Mobility
       def write(locale, value, options = {})
         return unless should_upload_for_translation?(value, attribute)
 
-        I18nSonder::UploadSourceStrings.new(model).upload(locale)
+        I18nSonder::UploadSourceStrings.new(model).upload_async(locale)
 
         super
       end
