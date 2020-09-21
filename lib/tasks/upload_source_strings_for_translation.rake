@@ -37,7 +37,7 @@ namespace :i18n_sonder do
       I18nSonder.logger.error("[upload_source_strings_for_translation] Beginning upload for #{klass}")
     else
       klass = args[:model_name].constantize
-      id = klass.find(args[:model_id])
+      obj = klass.find(args[:model_id])
 
       I18nSonder.logger.info("[upload_source_strings_for_translation] Uploaded source strings for #{total} #{klass} objects")
       I18nSonder::Upload.new(obj).upload(I18n::default_locale)
