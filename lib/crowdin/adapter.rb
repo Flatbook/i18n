@@ -145,7 +145,7 @@ module CrowdIn
 
       model_name = model.class.name
       id = model.id
-      files_to_cleanup = files_by_model_and_id(model_name, id)
+      files_to_cleanup = [file_by_model_and_id(model_name, id)]
 
       delete_source_files(files_to_cleanup)
     end
@@ -161,12 +161,12 @@ module CrowdIn
       objects_to_delete.each do |model_name, languages_by_id|
         languages_by_id.each do |id, languages|
           if sorted_languages == languages.sort
-            files_to_cleanup.append(files_by_model_and_id(model_name, id))
+            files_to_cleanup.append(file_by_model_and_id(model_name, id))
           end
         end
       end
 
-      delete_source_files(files_to_cleanup.flatten)
+      delete_source_files(files_to_cleanup)
     end
 
     def cleanup_file(file_id)
@@ -186,11 +186,11 @@ module CrowdIn
       ReturnObject.new(nil, failed_files)
     end
 
-    def files_by_model_and_id(model_name, id)
+    def file_by_model_and_id(model_name, id)
       file_name = file_name(model_name, id)
       file_base_name = File.basename(file_name, ".*")
 
-      [@client.find_file_by_name(file_base_name)]
+      @client.find_file_by_name(file_base_name)
     end
 
     def file_content_for_translations(object_type, object_id, updated_at, attributes, attribute_params)
