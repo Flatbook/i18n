@@ -34,10 +34,10 @@ RSpec.describe I18nSonder::UploadSourceStrings do
     end
   end
 
-    describe '#upload_async' do
-      subject(:upload) { described_class.new(instance).upload_async(locale) }
+  describe '#upload_async' do
+    subject(:upload) { described_class.new(instance).upload_async(locale) }
 
-      it 'calls async worker with correct params and delay' do
+    it 'calls async worker with correct params and delay' do
       # worker will be called twice, once per translatable field
       expect(worker_class_mock).to(
           receive(:perform_in).with(5.minutes, 'Post', id, options).exactly(2).times
