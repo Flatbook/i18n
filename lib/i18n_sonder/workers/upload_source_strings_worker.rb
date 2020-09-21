@@ -25,6 +25,7 @@ module I18nSonder
       # - +namespace+ is an option that specifies the directory to upload the source strings to,
       # if that is desired.
       def perform(object_type, object_id, options)
+        options = options.transform_keys(&:to_sym)
         localization_provider = I18nSonder.localization_provider
 
         # Find the object and all its localized attributes
