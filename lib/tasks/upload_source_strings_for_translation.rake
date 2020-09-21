@@ -37,10 +37,15 @@ namespace :i18n_sonder do
       I18nSonder.logger.error("[upload_source_strings_for_translation] Beginning upload for #{klass}")
     else
       klass = args[:model_name].constantize
+      id = args[:model_id]
       obj = klass.find(args[:model_id])
 
-      I18nSonder.logger.info("[upload_source_strings_for_translation] Uploaded source strings for #{total} #{klass} objects")
-      I18nSonder::Upload.new(obj).upload(I18n::default_locale)
+      if obj.present?
+        I18nSonder.logger.info("[upload_source_strings_for_translation] Uploaded source strings for #{klass} #{id}")
+        I18nSonder::Upload.new(obj).upload(I18n::default_locale)
+      else
+        I18nSonder.logger.error("[upload_source_strings_for_translation] Can't find #{klass} #{id}")
+      end
     end
   end
 end
