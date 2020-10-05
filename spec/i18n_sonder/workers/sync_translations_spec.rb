@@ -96,15 +96,12 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
     context "with errors on writing transaltions" do
       let(:error) { StandardError.new("error") }
 
-      it "doesn't cleanup any translations and logs writing error" do
+      it "doesn't cleanup any translations and logs writing error for ony the failed update" do
         expect(adapter).to receive(:translations).with('fr').and_return(translations_response)
 
-        # Since the translations are in a hash, and only one translation throws an error,
-        # we don't have a guarantee on the order with which we write translations.
-        # So we allow all the updates, rather than expecting anything specifically.
-        allow(model).to receive(:update).with('1', translation1['1'])
-        allow(model).to receive(:update).with('3', translation2['3']).and_raise(error)
-        allow(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
+        expect(model).to receive(:update).with('1', translation1['1'])
+        expect(model).to receive(:update).with('3', translation2['3']).and_raise(error)
+        expect(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
 
         allow(logger).to receive(:info)
         expect(logger).to receive(:error).with("[Class] #{error}").exactly(1).times
