@@ -26,14 +26,10 @@ module I18nSonder
           translations_by_model_and_id = translation_result.success
           handle_failure(translation_result.failure)
 
-          begin
-            write_translations(translations_by_model_and_id, language)
-          rescue => e
-            handle_failure(e)
-          else
-            # All translations were written successfully in this language
-            successful_syncs = process_successful_syncs(translations_by_model_and_id, language, successful_syncs)
-          end
+          write_translations(translations_by_model_and_id, language)
+
+          # All translations were written successfully in this language
+          successful_syncs = process_successful_syncs(translations_by_model_and_id, language, successful_syncs)
         end
 
         if approved_translations_only
@@ -49,8 +45,12 @@ module I18nSonder
         translations_by_model_and_id.each do |model_name, translations_by_id|
           translations_by_id.each do |id, translations|
             @logger.info("[#{self.class.name}] Writing translations for #{model_name} #{id} in #{language}")
-            Mobility.with_locale(language) do
-              model_name.constantize.update(id, translations)
+            begin
+              Mobility.with_locale(language) do
+                model_name.constantize.update(id, translations)
+              end
+            rescue => e
+              handle_failure(e)
             end
           end
         end
