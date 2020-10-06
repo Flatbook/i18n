@@ -7,7 +7,7 @@ module I18nSonder
       include Sidekiq::Worker
       include I18nSonder::Workers::SyncTranslations
 
-      sidekiq_options retry: 2
+      sidekiq_options retry: false
 
       def initialize
         @logger = I18nSonder.logger

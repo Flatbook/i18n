@@ -166,27 +166,27 @@ module CrowdIn
     def get_request(path, params = {})
       query = @connection.options[:params].merge(params)
       @connection[path].get(params: query) do |response, _, _|
-        process_response(response)
+        process_response(response, path, params)
       end
     end
 
     def post_request(path, params, headers)
       @connection[path].post(params, headers) do |response, _, _|
-        process_response(response)
+        process_response(response, path, params, headers)
       end
     end
 
     def delete_request(path)
       @connection[path].delete do |response, _, _|
         if response.code < 200 || response.code >= 300
-          process_response(response)
+          process_response(response, path)
         end
       end
     end
 
     def put_request(path, params, headers)
       @connection[path].put(params, headers) do |response, _, _|
-        process_response(response)
+        process_response(response, path, params, headers)
       end
     end
 
@@ -205,14 +205,18 @@ module CrowdIn
     end
 
     # Assumes that the response is in JSON format
-    def process_response(response)
+    def process_response(response, path, params = nil, headers = nil)
       begin
         body = JSON.load(response.body)
       rescue
         raise CrowdIn::Client::Errors::Error.new(
-            -1, "Could not parse response into JSON: #{response.body}"
+            -1, "Could not parse response into JSON: #{response.body}, path: #{path}, params: #{params}, headers: #{headers}"
         )
       end
+
+      raise CrowdIn::Client::Errors::Error.new(
+          -1, "Empty response body received, path: #{path}, params: #{params}, headers: #{headers}"
+      ) if body.nil?
 
       if body.key? 'error'
         raise CrowdIn::Client::Errors::Error.new(
@@ -223,7 +227,7 @@ module CrowdIn
         # response comes in nested format with a lot of "data" keys, which we can flatten
         flatten_data_nodes(body)
       else
-        raise CrowdIn::Client::Errors::Error.new(-1 ,"Unexpected response format: #{response}")
+        raise CrowdIn::Client::Errors::Error.new(-1 ,"Unexpected response format: #{response}, path: #{path}, params: #{params}, headers: #{headers}")
       end
     end
 

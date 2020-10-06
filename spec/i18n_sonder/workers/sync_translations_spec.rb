@@ -28,6 +28,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
   let(:translations) { { "Model" => translation1.merge(translation2), "AnotherModel" => translation3 } }
   let(:successful_syncs) { { "Model" => { "1" => [:fr],  "3" => [:fr] }, "AnotherModel" => { "4" => [:fr] } } }
   let(:error) { CrowdIn::Client::Errors::Error.new(404, "not found") }
+  let(:batch_size) { 500 }
 
   context "#sync" do
     let(:translations_response) { CrowdIn::Adapter::ReturnObject.new(translations, nil) }
@@ -41,7 +42,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
 
     context "all translations" do
       it "fetches translations, and writes them to the DB" do
-        expect(adapter).to receive(:translations).with('fr').and_return(translations_response)
+        expect(adapter).to receive(:translations).with('fr', batch_size).and_yield(translations_response)
         expect(model).to receive(:update).with('1', translation1['1'])
         expect(model).to receive(:update).with('3', translation2['3'])
         expect(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
@@ -54,7 +55,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
 
     context "approved translations only" do
       it "fetches translations, and writes them to the DB, and then cleans up successful syncs" do
-        expect(adapter).to receive(:approved_translations).with('fr').and_return(translations_response)
+        expect(adapter).to receive(:approved_translations).with('fr', batch_size).and_yield(translations_response)
         expect(model).to receive(:update).with('1', translation1['1'])
         expect(model).to receive(:update).with('3', translation2['3'])
         expect(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])
@@ -72,7 +73,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
         let(:translations_response) { CrowdIn::Adapter::ReturnObject.new({}, error) }
 
         it "does not write translations if adapter returns error with empty translations" do
-          expect(adapter).to receive(:translations).with('fr').and_return(translations_response)
+          expect(adapter).to receive(:translations).with('fr', batch_size).and_yield(translations_response)
           expect(model).not_to receive(:update)
           expect(logger).to receive(:info).exactly(1).times
           expect(logger).to receive(:error).exactly(1).times
@@ -84,7 +85,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
         let(:translations_response) { CrowdIn::Adapter::ReturnObject.new(translations, error) }
 
         it "writes valid translations and logs for error" do
-          expect(adapter).to receive(:translations).with('fr').and_return(translations_response)
+          expect(adapter).to receive(:translations).with('fr', batch_size).and_yield(translations_response)
           expect(model).to receive(:update).with('1', translation1['1'])
           expect(logger).to receive(:info).exactly(2).times
           expect(logger).to receive(:error).exactly(1).times
@@ -97,7 +98,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
       let(:error) { StandardError.new("error") }
 
       it "doesn't cleanup any translations and logs writing error for ony the failed update" do
-        expect(adapter).to receive(:translations).with('fr').and_return(translations_response)
+        expect(adapter).to receive(:translations).with('fr', batch_size).and_yield(translations_response)
 
         expect(model).to receive(:update).with('1', translation1['1'])
         expect(model).to receive(:update).with('3', translation2['3']).and_raise(error)
@@ -111,7 +112,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
 
     context "with errors on cleaning up transaltions" do
       it "doesn't affect execution" do
-        expect(adapter).to receive(:approved_translations).with('fr').and_return(translations_response)
+        expect(adapter).to receive(:approved_translations).with('fr', batch_size).and_yield(translations_response)
         expect(model).to receive(:update).with('1', translation1['1'])
         expect(model).to receive(:update).with('3', translation2['3'])
         expect(another_model).to receive(:update).with('4', translations['AnotherModel']['4'])

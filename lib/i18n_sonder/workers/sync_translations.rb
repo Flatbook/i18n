@@ -1,6 +1,9 @@
 module I18nSonder
   module Workers
     module SyncTranslations
+
+      BATCH_SIZE = 500
+
       def sync(approved_translations_only:)
         localization_provider = I18nSonder.localization_provider
 
@@ -19,17 +22,14 @@ module I18nSonder
           #   }
           # }
           if approved_translations_only
-            translation_result = localization_provider.approved_translations(language.to_s)
+            localization_provider.approved_translations(language.to_s, BATCH_SIZE) do |translation_result_batch|
+              successful_syncs = process_translation_result(translation_result_batch, language, successful_syncs)
+            end
           else
-            translation_result = localization_provider.translations(language.to_s)
+            localization_provider.translations(language.to_s, BATCH_SIZE) do |translation_result_batch|
+              successful_syncs = process_translation_result(translation_result_batch, language, successful_syncs)
+            end
           end
-          translations_by_model_and_id = translation_result.success
-          handle_failure(translation_result.failure)
-
-          write_translations(translations_by_model_and_id, language)
-
-          # All translations were written successfully in this language
-          successful_syncs = process_successful_syncs(translations_by_model_and_id, language, successful_syncs)
         end
 
         if approved_translations_only
@@ -37,6 +37,15 @@ module I18nSonder
           cleanup_result = localization_provider.cleanup_translations(successful_syncs, languages_to_translate)
           handle_failure(cleanup_result.failure)
         end
+      end
+
+      def process_translation_result(translation_result, language, successful_syncs)
+        translations_by_model_and_id = translation_result.success
+        handle_failure(translation_result.failure)
+
+        write_translations(translations_by_model_and_id, language)
+
+        process_successful_syncs(translations_by_model_and_id, language, successful_syncs)
       end
 
       # Update attributes in given language
