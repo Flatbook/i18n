@@ -10,6 +10,14 @@ RSpec.describe CrowdIn::Adapter do
   let(:file2_id) { '2' }
   let(:file3_id) { '3' }
   let(:file4_id) { '4' }
+  let(:files) {
+    [
+        { "id" => file1_id },
+        { "id" => file2_id },
+        { "id" => file3_id },
+        { "id" => file4_id },
+    ]
+  }
   let(:status) {
     [
         { "file_id" => file1_id, "approvalProgress" => 100 },
@@ -43,66 +51,119 @@ RSpec.describe CrowdIn::Adapter do
   let(:instance) { Post.new(id: "1", title: "T1", content: "some content", published: true) }
 
   context "#translations" do
-    it "returns translations for only completely approved files" do
-      expect(client).to receive(:language_status).with(language).and_return(status)
+    it "yields translations for only completely approved files" do
+      expect(client).to receive(:files).and_return(files)
       expect(client).to receive(:export_file).with(file1_id, language).and_return(raw_translations_1)
       expect(client).to receive(:export_file).with(file2_id, language).and_return(raw_translations_2)
       expect(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
       expect(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
 
-      r = subject.translations(language)
-      expect(r.success).to eq expected_output
-      expect(r.failure).to be_nil
+      subject.translations(language) do |r|
+        expect(r.success).to eq expected_output
+        expect(r.failure).to be_nil
+      end
     end
 
-    it "returns failed files when some approved files fail export" do
-      expect(client).to receive(:language_status).with(language).and_return(status)
+    it "yields failed files when some approved files fail export" do
+      expect(client).to receive(:files).and_return(files)
       expect(client).to receive(:export_file).with(file1_id, language).and_raise(error)
       expect(client).to receive(:export_file).with(file2_id, language).and_return(raw_translations_2)
       expect(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
       expect(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
 
-      r = subject.translations(language)
-      expect(r.success).to eq(expected_output.except("Model"))
-      expect(r.failure).to eq(CrowdIn::FileMethods::FilesError.new({file1_id => error.to_s }) )
+      subject.translations(language) do |r|
+        expect(r.success).to eq(expected_output.except("Model"))
+        expect(r.failure).to eq(CrowdIn::FileMethods::FilesError.new({file1_id => error.to_s }) )
+      end
     end
 
-    it "returns overall failure if we fail to fetch language status" do
-      expect(client).to receive(:language_status).with(language).and_raise(error)
+    it "yields overall failure if we fail to fetch files" do
+      expect(client).to receive(:files).and_raise(error)
       r = subject.translations(language)
       expect(r.success).to eq({})
       expect(r.failure).to eq error
+    end
+
+    context "in batches" do
+      before do
+        allow(client).to receive(:files).and_return(files)
+        allow(client).to receive(:export_file).with(file1_id, language).and_raise(error)
+        allow(client).to receive(:export_file).with(file2_id, language).and_return(raw_translations_2)
+        allow(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
+        allow(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
+      end
+
+      it "yields multiple times" do
+        expect { |b| subject.translations(language, 1, &b) }.to yield_control.exactly(4).times
+      end
+
+      it "yields correct results" do
+        successes = {}
+        failures = []
+        subject.translations(language, 1) do |r|
+          successes = successes.merge(r.success)
+          failures.append(r.failure) if r.failure.present?
+        end
+        expect(successes).to eq(expected_output.except("Model"))
+        expect(failures).to eq([CrowdIn::FileMethods::FilesError.new({file1_id => error.to_s })])
+      end
     end
   end
 
   context "#approved_translations" do
-    it "returns translations for only completely approved files" do
+    it "yields translations for only completely approved files" do
       expect(client).to receive(:language_status).with(language).and_return(status)
       expect(client).to receive(:export_file).with(file1_id, language).and_return(raw_translations_1)
       expect(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
       expect(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
 
-      r = subject.approved_translations(language)
-      expect(r.success).to eq expected_output
-      expect(r.failure).to be_nil
+      subject.approved_translations(language) do |r|
+        expect(r.success).to eq expected_output
+        expect(r.failure).to be_nil
+      end
     end
 
-    it "returns failed files when some approved files fail export" do
+    it "yields failed files when some approved files fail export" do
       expect(client).to receive(:language_status).with(language).and_return(status)
       expect(client).to receive(:export_file).with(file1_id, language).and_raise(error)
       expect(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
       expect(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
 
-      r = subject.approved_translations(language)
-      expect(r.success).to eq(expected_output.except("Model"))
-      expect(r.failure).to eq(CrowdIn::FileMethods::FilesError.new({file1_id => error.to_s }) )
+      subject.approved_translations(language) do |r|
+        expect(r.success).to eq(expected_output.except("Model"))
+        expect(r.failure).to eq(CrowdIn::FileMethods::FilesError.new({file1_id => error.to_s }) )
+      end
     end
 
-    it "returns overall failure if we fail to fetch language status" do
+    it "yields overall failure if we fail to fetch language status" do
       expect(client).to receive(:language_status).with(language).and_raise(error)
       r = subject.approved_translations(language)
       expect(r.success).to eq({})
       expect(r.failure).to eq error
+    end
+
+    context "in batches" do
+      before do
+        allow(client).to receive(:language_status).with(language).and_return(status)
+        allow(client).to receive(:export_file).with(file1_id, language).and_raise(error)
+        allow(client).to receive(:export_file).with(file3_id, language).and_return(raw_translations_2)
+        allow(client).to receive(:export_file).with(file4_id, language).and_return(raw_translations_3)
+      end
+
+      it "yields multiple times" do
+        expect { |b| subject.approved_translations(language, 1, &b) }.to yield_control.exactly(3).times
+      end
+
+      it "yields correct results" do
+        successes = {}
+        failures = []
+        subject.approved_translations(language, 1) do |r|
+          successes = successes.merge(r.success)
+          failures.append(r.failure) if r.failure.present?
+        end
+        expect(successes).to eq(expected_output.except("Model"))
+        expect(failures).to eq([CrowdIn::FileMethods::FilesError.new({file1_id => error.to_s })])
+      end
     end
   end
 

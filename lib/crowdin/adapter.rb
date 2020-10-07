@@ -80,7 +80,7 @@ module CrowdIn
     end
 
     # Given a language, fetch all translations.
-    # Returns Struct of approved translations hash, and/or failures.
+    # Yields a struct of approved translations hash, and/or failures.
     # Approved translations have the format:
     # {
     #   model: {
@@ -94,18 +94,21 @@ module CrowdIn
     # Failures can be:
     # 1) +CrowdIn::Client::Errors::Error+ if we fail to fetch the translation status of files
     # 2) +CrowdIn::FileMethods::FilesError+ if any individual files fail on export
-    def translations(language)
+    def translations(language, batch_size = 500)
       begin
-        file_status_list = @client.language_status(language)
-        file_ids = file_status_list.map { |f| f['file_id'] }
-        translations_for_files(file_ids, language)
+        # Get all file ids at once, since that is a single API call that is cached
+        # but fetch translations in batches and yield them to the caller.
+        file_ids = @client.files.map { |f| f['id'] }
+        file_ids.each_slice(batch_size) do |batch|
+          yield(translations_for_files(batch, language))
+        end
       rescue CrowdIn::Client::Errors::Error => e
         ReturnObject.new({}, e)
       end
     end
 
     # Given a language, fetch approved translations.
-    # Returns Struct of approved translations hash, and/or failures.
+    # Yields a struct of approved translations hash, and/or failures.
     # Approved translations have the format:
     # {
     #   model: {
@@ -119,7 +122,7 @@ module CrowdIn
     # Failures can be:
     # 1) +CrowdIn::Client::Errors::Error+ if we fail to fetch the translation status of files
     # 2) +CrowdIn::FileMethods::FilesError+ if any individual files fail on export
-    def approved_translations(language)
+    def approved_translations(language, batch_size = 500)
       begin
         file_status_list = @client.language_status(language)
       rescue CrowdIn::Client::Errors::Error => e
@@ -128,8 +131,9 @@ module CrowdIn
         # Fetch list of approved translation file paths
         approved_file_ids = file_status_list.select { |f| f['approvalProgress'] == 100 }.map { |f| f['file_id'] }
 
-        # Fetch translations for each approved file
-        translations_for_files(approved_file_ids, language)
+        approved_file_ids.each_slice(batch_size) do |batch|
+          yield(translations_for_files(batch, language))
+        end
       end
     end
 
