@@ -7,10 +7,12 @@ require 'mobility/plugins/locale_optimized_query'
 require 'mobility/plugins/upload_for_translation'
 require 'i18n_sonder/workers/sync_translations_worker'
 require 'i18n_sonder/workers/sync_approved_translations_worker'
+require 'i18n_sonder/workers/upsert_translation_worker'
 require 'i18n_sonder/workers/upload_source_strings_worker'
 require 'i18n_sonder/upload_source_strings'
 require 'i18n_sonder/delete_strings'
 require 'i18n_sonder/railtie'
+require 'i18n_sonder/engine'
 
 module I18nSonder
   class << self

@@ -161,6 +161,16 @@ module CrowdIn
       put_request(path, body, content_type: :json)
     end
 
+    def translation(translation_id)
+      path = "api/v2/projects/#{@project_id}/translations/#{translation_id}"
+      get_request(path, {})
+    end
+
+    def source_string(string_id)
+      path = "api/v2/projects/#{@project_id}/strings/#{string_id}"
+      get_request(path, {})
+    end
+
     private
 
     def get_request(path, params = {})
