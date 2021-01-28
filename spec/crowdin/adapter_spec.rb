@@ -477,4 +477,45 @@ RSpec.describe CrowdIn::Adapter do
       end
     end
   end
+
+  context "#translation_by_id" do
+    let(:source_string_id) { 222 }
+    let(:translation_id) { 333 }
+    let(:error_message) { "translation_id and/or source_string_id params not present" }
+    let(:source_string) { { "context" => "Model -> 123 -> 1111 -> field" } }
+    let(:translation) { { "text" => "dummy translation" } }
+
+    it "returns ArgumentError if translation_id isn't present" do
+      subject.translation_by_id(nil, source_string_id) do |r|
+        expect(r.success).to be_empty
+        expect(r.failure).to eq(ArgumentError.new(error_message))
+      end
+    end
+
+    it "returns ArgumentError if source_string_id isn't present" do
+      subject.translation_by_id(translation_id, nil) do |r|
+        expect(r.success).to be_empty
+        expect(r.failure).to eq(ArgumentError.new(error_message))
+      end
+    end
+
+    it "fetches context from source string and translation from client" do
+      allow(client).to receive(:source_string).with(source_string_id).and_return(source_string)
+      allow(client).to receive(:translation).with(translation_id).and_return(translation)
+
+      subject.translation_by_id(translation_id, source_string_id) do |r|
+        expect(r.success).to eq( { "Model" => { "123" => { "field" => "dummy translation" } } } )
+        expect(r.failure).to eq(nil)
+      end
+    end
+
+    it "returns failure if client method throws an Crowdin client error" do
+      allow(client).to receive(:source_string).and_raise(error)
+
+      subject.translation_by_id(translation_id, source_string_id) do |r|
+        expect(r.success).to be_empty
+        expect(r.failure).to eq(error)
+      end
+    end
+  end
 end
