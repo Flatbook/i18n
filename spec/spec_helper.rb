@@ -1,3 +1,5 @@
+require "rails_helper"
+
 require "bundler/setup"
 require "i18n_sonder"
 require "active_record"

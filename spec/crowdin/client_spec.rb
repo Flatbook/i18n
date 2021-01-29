@@ -478,5 +478,57 @@ context "#file_status" do
         end
       end
     end
+
+    context "#translation" do
+      let(:translation_id) { 222 }
+
+      before do
+        stub_request(:get, "#{base_path}/translations/#{translation_id}")
+            .to_return(body: response_string, status: 200)
+      end
+
+      context "on success" do
+        let(:response) { { "text" => "dummy_translation" } }
+        let(:response_string) { "{ \"data\": #{response.to_json} }" }
+
+        it "returns expected response" do
+          expect(subject.translation(translation_id)).to eq response
+        end
+      end
+
+      context "on failure" do
+        let(:response_string) { '{ "error": { "code": 404, "message": "error message" } }' }
+
+        it "returns expected response" do
+          expect { subject.translation(translation_id) }.to raise_error(CrowdIn::Client::Errors::Error, "404: error message")
+        end
+      end
+    end
+
+    context "#source_string" do
+      let(:source_string_id) { 222 }
+
+      before do
+        stub_request(:get, "#{base_path}/strings/#{source_string_id}")
+            .to_return(body: response_string, status: 200)
+      end
+
+      context "on success" do
+        let(:response) { { "string" => "dummy", "context" => "Foo -> Bar" } }
+        let(:response_string) { "{ \"data\": #{response.to_json} }" }
+
+        it "returns expected response" do
+          expect(subject.source_string(source_string_id)).to eq response
+        end
+      end
+
+      context "on failure" do
+        let(:response_string) { '{ "error": { "code": 404, "message": "error message" } }' }
+
+        it "returns expected response" do
+          expect { subject.source_string(source_string_id) }.to raise_error(CrowdIn::Client::Errors::Error, "404: error message")
+        end
+      end
+    end
   end
 end

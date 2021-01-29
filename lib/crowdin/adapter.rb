@@ -178,6 +178,35 @@ module CrowdIn
       ReturnObject.new(nil, failed_files)
     end
 
+    def translation_by_id(translation_id, source_string_id)
+      unless translation_id.present? && source_string_id.present?
+        return ReturnObject.new(
+          {},
+          ArgumentError.new("translation_id and/or source_string_id params not present")
+        )
+      end
+
+      begin
+        source_string_context = @client.source_string(source_string_id)["context"]
+        model_name, model_id, _updated, field_name = source_string_context.split(" -> ")
+
+        translation_text = @client.translation(translation_id)["text"]
+      rescue CrowdIn::Client::Errors::Error => e
+        ReturnObject.new({}, e)
+      else
+        ReturnObject.new(
+          {
+            model_name => {
+              model_id => {
+                field_name => translation_text
+              }
+            }
+          },
+          nil
+        )
+      end
+    end
+
     private
 
     def delete_source_files(files_to_cleanup)

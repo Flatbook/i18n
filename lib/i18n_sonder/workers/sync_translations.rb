@@ -53,7 +53,7 @@ module I18nSonder
         # Write these translations to DB
         translations_by_model_and_id.each do |model_name, translations_by_id|
           translations_by_id.each do |id, translations|
-            @logger.info("[#{self.class.name}] Writing translations for #{model_name} #{id} in #{language}")
+            @logger.info("[#{self.class.name}] Writing translations for #{model_name} #{id} in #{language} for following fields: #{translations.keys}")
             begin
               Mobility.with_locale(language) do
                 model_name.constantize.update(id, translations)

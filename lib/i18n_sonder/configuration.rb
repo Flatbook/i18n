@@ -1,7 +1,7 @@
 module I18nSonder
   class Configuration
     attr_accessor :crowdin_api_key, :crowdin_project_id, :logger,
-    :languages_to_translate, :apply_duplicate_translations_on_upload
+    :languages_to_translate, :apply_duplicate_translations_on_upload, :auth_token
 
     def initialize
       self.crowdin_api_key = nil
@@ -9,6 +9,7 @@ module I18nSonder
       self.logger = nil
       self.languages_to_translate = nil
       self.apply_duplicate_translations_on_upload = nil
+      self.auth_token = nil
     end
   end
 end
