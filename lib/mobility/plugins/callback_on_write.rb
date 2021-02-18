@@ -16,7 +16,7 @@ module Mobility
         return unless should_execute_callback?(value, attribute, locale)
         
         super
-        I18nSonder::ExecuteCallbackOnWrite.callback.call(model, locale)
+        I18nSonder::CallbackOnWrite.trigger.call(model, locale)
       end
 
       private

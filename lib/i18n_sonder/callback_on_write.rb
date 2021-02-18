@@ -1,11 +1,11 @@
 module I18nSonder
-  class ExecuteCallbackOnWrite
+  class CallbackOnWrite
     class << self
-      def write_event_callback(&block)
+      def register(&block)
         @callback = block
       end
 
-      def callback
+      def trigger
         @callback
       end
     end
