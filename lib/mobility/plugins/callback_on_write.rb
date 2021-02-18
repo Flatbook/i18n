@@ -1,5 +1,5 @@
 require 'mobility'
-require 'i18n_sonder/execute_callback_on_write'
+require 'i18n_sonder/callback_on_write'
 
 module Mobility
   module Plugins
