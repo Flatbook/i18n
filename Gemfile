@@ -4,8 +4,8 @@ source "https://rubygems.org"
 gemspec
 
 group :development, :test do
-  gem 'activerecord', '>= 5.2.4.3', '< 6.1'
-  gem 'railties', '>= 6.0.3.3', '< 6.1'
+  gem 'activerecord', '>= 5.2.4.3', '< 6.2'
+  gem 'railties', '>= 6.0.3.3', '< 6.2'
 
   gem 'pry'
   gem 'pry-byebug'
