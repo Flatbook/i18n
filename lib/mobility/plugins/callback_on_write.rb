@@ -25,11 +25,9 @@ module Mobility
       # 1) the new value being written is different to the already existing value in the context of the locale
       # 2) the locale is not the same as the default locale
       def should_execute_callback?(value, attribute, locale)
-        Mobility.with_locale(locale) do
           old_value = model.read_attribute(attribute)
 
           value != old_value && locale != I18n.default_locale
-        end
       end
     end
   end
