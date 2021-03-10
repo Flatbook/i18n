@@ -87,9 +87,11 @@ Mobility.configure do |config|
         fallthrough_accessors
         locale_accessors
         upload_for_translation
+        callback_on_write
       ]
   config.default_options[:locale_optimized_query] = true
   config.default_options[:upload_for_translation] = true
+  config.default_options[:callback_on_write] = true
 end
 
 class Post < ActiveRecord::Base
