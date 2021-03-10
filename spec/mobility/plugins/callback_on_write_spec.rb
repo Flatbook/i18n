@@ -35,7 +35,7 @@ RSpec.describe Mobility::Plugins::CallbackOnWrite do
     it "triggers the registered callback block" do
       expect(I18nSonder::CallbackOnWrite.trigger).to receive(:call)
       instance.save!
-      I18n.locale = :fr
+      I18n.locale = locale
       instance.update!(content: "new content")
     end
 
