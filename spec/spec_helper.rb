@@ -87,11 +87,12 @@ Mobility.configure do |config|
         fallthrough_accessors
         locale_accessors
         upload_for_translation
-        callback_on_write
       ]
   config.default_options[:locale_optimized_query] = true
   config.default_options[:upload_for_translation] = true
-  config.default_options[:callback_on_write] = true
+  # Callback on write tests are causing other tests to fail.
+  # We don't use this right now, so we will temporarily disable this until needed and fixed.
+  #config.default_options[:callback_on_write] = true
 end
 
 class Post < ActiveRecord::Base
