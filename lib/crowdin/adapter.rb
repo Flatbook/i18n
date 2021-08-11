@@ -187,8 +187,10 @@ module CrowdIn
       end
 
       begin
-        source_string_context = @client.source_string(source_string_id)["context"]
+        source_string = @client.source_string(source_string_id)
+        source_string_context = source_string["context"]
         model_name, model_id, _updated, field_name = source_string_context.split(" -> ")
+        source_string_text = source_string["text"]
 
         translation_text = @client.translation(translation_id)["text"]
       rescue CrowdIn::Client::Errors::Error => e
@@ -196,9 +198,18 @@ module CrowdIn
       else
         ReturnObject.new(
           {
-            model_name => {
-              model_id => {
-                field_name => translation_text
+            'source_text' => {
+              model_name => {
+                model_id => {
+                  field_name => source_string_text
+                }
+              }
+            },
+            'translation' => {
+              model_name => {
+                model_id => {
+                  field_name => translation_text
+                }
               }
             }
           },

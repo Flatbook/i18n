@@ -16,7 +16,7 @@ module I18nSonder
       def perform(language, translation_id, source_string_id)
         localization_provider = I18nSonder.localization_provider
         translation_result = localization_provider.translation_by_id(translation_id, source_string_id)
-        process_translation_result(translation_result, language, {})
+        process_translation_result(translation_result, language, {}, true)
       end
     end
   end
