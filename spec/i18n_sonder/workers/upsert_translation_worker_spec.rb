@@ -22,7 +22,12 @@ RSpec.describe I18nSonder::Workers::UpsertTranslationWorker do
     class_double(Model).as_stubbed_const(transfer_nested_constants: true)
   end
   let(:model_instance) { instance_double(model) }
-  let(:translation) { { "Model" => { "123" => { "field1" => "val 1" } } } }
+  let(:translation) {
+    {
+      "source_text" => { "Model" => { "1" => { "field1" => "source1" } } },
+      "translation" => { "Model" => { "1" => { "field1" => "translation1" } } }
+    }
+  }
   let(:translation_response) { CrowdIn::Adapter::ReturnObject.new(translation, nil) }
 
   let(:error) { CrowdIn::Client::Errors::Error.new(404, "not found") }
@@ -38,7 +43,8 @@ RSpec.describe I18nSonder::Workers::UpsertTranslationWorker do
           .with(translation_id, source_string_id)
           .and_return(translation_response)
       )
-      expect(model).to receive(:update).with('123', translation['Model']['123'])
+      expect(model).to receive(:where).with("field1 = ?", "source1").and_return([{ id: 1 }])
+      expect(model).to receive(:update).with(1, translation.dig('translation', 'Model', '1'))
       expect(logger).to receive(:info).exactly(1).times
       expect(logger).not_to receive(:error)
       subject.perform(language, translation_id, source_string_id)
@@ -52,7 +58,7 @@ RSpec.describe I18nSonder::Workers::UpsertTranslationWorker do
       )
       expect(model).not_to receive(:update)
       expect(logger).not_to receive(:info)
-      expect(logger).to receive(:error).once
+      expect(logger).to receive(:error).twice
       subject.perform(language, translation_id, source_string_id)
     end
   end

@@ -123,4 +123,39 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
       end
     end
   end
+
+  context "#process_translation_result_with_duplicates" do
+    let(:translations) {
+      {
+        "source_text" => {
+          "Model" => {
+            "1" => { "field1" => "source1" },
+            "2" => { "field2" => "source2" }
+          }
+        },
+        "translation" => {
+          "Model" => {
+            "1" => { "field1" => "translation1" },
+            "2" => { "field2" => "translation2" }
+          }
+        }
+      }
+    }
+    let(:translations_response) { CrowdIn::Adapter::ReturnObject.new(translations, nil) }
+
+    before do
+      I18n.available_locales = [:en, :fr]
+      I18n.default_locale = :en
+    end
+
+    it "fetches all duplicates to sync" do
+      expect(model).to receive(:where).with("field1 = ?", "source1").and_return([{ id: 1 }, { id: 3 }])
+      expect(model).to receive(:where).with("field2 = ?", "source2").and_return([{ id: 2 }])
+      expect(model).to receive(:update).with(1, { "field1" => "translation1"} )
+      expect(model).to receive(:update).with(3, { "field1" => "translation1"} )
+      expect(model).to receive(:update).with(2, { "field2" => "translation2"} )
+      expect(logger).to receive(:info).exactly(3).times
+      subject.process_translation_result_with_duplicates(translations_response, :fr, {})
+    end
+  end
 end
