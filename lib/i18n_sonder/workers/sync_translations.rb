@@ -4,12 +4,16 @@ module I18nSonder
 
       BATCH_SIZE = 500
 
-      def sync(approved_translations_only:)
+      def sync(approved_translations_only:, languages: nil)
         localization_provider = I18nSonder.localization_provider
 
         successful_syncs = {}
         # Iterate through each language we need to sync
-        languages_to_translate = I18nSonder.languages_to_translate.reject { |l| l == I18n.default_locale }
+        if languages.present?
+          languages_to_translate = languages
+        else
+          languages_to_translate = I18nSonder.languages_to_translate.reject { |l| l == I18n.default_locale }
+        end
         languages_to_translate.each do |language|
           @logger.info("[#{self.class.name}] Fetching translations for #{language}")
           # Fetch translations in the following format
