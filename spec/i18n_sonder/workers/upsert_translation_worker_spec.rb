@@ -58,7 +58,7 @@ RSpec.describe I18nSonder::Workers::UpsertTranslationWorker do
       )
       expect(model).not_to receive(:update)
       expect(logger).not_to receive(:info)
-      expect(logger).to receive(:error).once
+      expect(logger).to receive(:error).twice
       subject.perform(language, translation_id, source_string_id)
     end
   end

@@ -124,7 +124,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
     end
   end
 
-  context "#process_translation_result with handling duplicates" do
+  context "#process_translation_result_with_duplicates" do
     let(:translations) {
       {
         "source_text" => {
@@ -155,7 +155,7 @@ RSpec.describe I18nSonder::Workers::SyncTranslations do
       expect(model).to receive(:update).with(3, { "field1" => "translation1"} )
       expect(model).to receive(:update).with(2, { "field2" => "translation2"} )
       expect(logger).to receive(:info).exactly(3).times
-      subject.process_translation_result(translations_response, :fr, {}, true)
+      subject.process_translation_result_with_duplicates(translations_response, :fr, {})
     end
   end
 end

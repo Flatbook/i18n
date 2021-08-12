@@ -39,21 +39,29 @@ module I18nSonder
         end
       end
 
-      def process_translation_result(translation_result,
-                                     language,
-                                     successful_syncs,
-                                     handle_duplicates = false)
-        translations_and_source_text = translation_result.success
+      def process_translation_result(translation_result, language, successful_syncs)
+        translations_by_model_and_id = translation_result.success
         handle_failure(translation_result.failure)
-        return unless translations_and_source_text.present?
 
-        if handle_duplicates
-          translations_by_model_and_id = all_duplicate_translations(
-            translations_and_source_text, language
-          )
-        else
-          translations_by_model_and_id = translations_and_source_text
-        end
+        write_translations(translations_by_model_and_id, language)
+
+        process_successful_syncs(translations_by_model_and_id, language, successful_syncs)
+      end
+
+      def process_translation_result_with_duplicates(translation_result,
+                                                     language,
+                                                     successful_syncs)
+        handle_failure(translation_result.failure)
+        success = translation_result.success
+        valid_translation_result = success.present? &&
+          success.key?('source_text') &&
+          success.key?('translation')
+        @logger.error("[#{self.class.name}] Invalid translation result") unless valid_translation_result
+        return unless valid_translation_result
+
+        translations_by_model_and_id = all_duplicate_translations(
+          translation_result.success, language
+        )
 
         write_translations(translations_by_model_and_id, language)
 
