@@ -4,6 +4,12 @@ require 'i18n_sonder/upload_source_strings'
 module Mobility
   module Plugins
     module UploadForTranslation
+      extend Plugin
+
+      default true
+
+      requires :backend, include: :before
+
       class << self
         def apply(attributes, option)
           return unless option
@@ -30,5 +36,7 @@ module Mobility
         value != old_value
       end
     end
+
+    register_plugin(:upload_for_translation, UploadForTranslation)
   end
 end

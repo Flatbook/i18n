@@ -203,7 +203,7 @@ RSpec.describe I18nSonder::Workers::UploadSourceStringsWorker do
   end
 
   def create_translation(value, locale)
-    t = Mobility::ActiveRecord::TextTranslation.new
+    t = Mobility::Backends::ActiveRecord::Table::TextTranslation.new
     allow(t).to receive(:value).and_return(value)
     allow(t).to receive(:locale).and_return(locale)
     t
