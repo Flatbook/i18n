@@ -12,7 +12,7 @@ namespace :i18n_sonder do
       # We get all DIRECT subclasses of ApplicationRecord, rather than all descendents
       # since the table containing source strings will be a direct subclass of
       # ActiveRecord. We don't need to process derived models.
-      klasses = ApplicationRecord.subclasses.select { |m| m.included_modules.include?(Mobility::ActiveRecord) }
+      klasses = ApplicationRecord.subclasses.select { |m| m.included_modules.include?(Mobility::Backends::ActiveRecord) }
     end
 
     klasses.each do |klass|
