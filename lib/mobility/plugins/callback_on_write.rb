@@ -34,5 +34,7 @@ module Mobility
         end
       end
     end
+
+    register_plugin(:callback_on_write, CallbackOnWrite)
   end
 end

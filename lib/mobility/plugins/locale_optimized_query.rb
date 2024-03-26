@@ -95,5 +95,7 @@ module Mobility
         end
       end
     end
+
+    register_plugin(:locale_optimized_query, LocaleOptimizedQuery)
   end
 end
