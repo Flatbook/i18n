@@ -4,6 +4,8 @@ require 'i18n_sonder/callback_on_write'
 module Mobility
   module Plugins
     module CallbackOnWrite
+      extend Plugin
+
       class << self
         def apply(attributes, option)
           return unless option
@@ -14,7 +16,7 @@ module Mobility
 
       def write(locale, value, options = {})
         return unless should_execute_callback?(value, attribute, locale)
-        
+
         super
         I18nSonder::CallbackOnWrite.trigger.call(model, locale)
       end

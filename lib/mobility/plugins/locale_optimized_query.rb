@@ -17,6 +17,8 @@ require "mobility/plugins/active_record/query"
 module Mobility
   module Plugins
     module LocaleOptimizedQuery
+      extend Plugin
+
       class << self
         def apply(attributes, option)
           return unless option
