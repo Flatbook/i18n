@@ -9,6 +9,7 @@ module Mobility
       default true
 
       requires :backend, include: :before
+      requires :attributes
 
       class << self
         def apply(attributes, option)
