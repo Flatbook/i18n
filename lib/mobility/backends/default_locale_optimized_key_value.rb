@@ -29,5 +29,7 @@ module Mobility
         end
       end
     end
+
+    register_backend(:default_locale_optimized_key_value, DefaultLocaleOptimizedKeyValue)
   end
 end

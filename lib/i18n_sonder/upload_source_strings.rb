@@ -43,7 +43,7 @@ module I18nSonder
 
     def translated_attribute_params
       # Get translated attributes and each attribute's params for uploading translations
-      translated_attribute_names = model.translated_attribute_names
+      translated_attribute_names = model.translated_attributes.keys
       translated_attribute_params = {}
       translated_attribute_names.each do |attribute_name|
         upload_options = model.public_send("#{attribute_name}_backend").options[:upload_for_translation]
