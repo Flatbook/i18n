@@ -14,7 +14,7 @@ module Mobility
         end
       end
 
-      def write(locale, value, options = {})
+      def write(locale, value, **options)
         return unless should_execute_callback?(value, attribute, locale)
 
         super
