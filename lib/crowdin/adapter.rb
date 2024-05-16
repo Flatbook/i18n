@@ -79,6 +79,15 @@ module CrowdIn
       end
     end
 
+    def should_include_file(f, updated_at_cutoff, city)
+      no_cuttoff = updated_at_cutoff.nil? || DateTime.iso8601(f['updatedAt']) >= updated_at_cutoff
+      valid_city = city.nil? || d.get("path", "").contains(city)
+      return no_cuttoff && valid_city
+    rescue
+      # Failsafe
+      return true
+    end
+
     # Given a language, fetch all translations.
     # Yields a struct of approved translations hash, and/or failures.
     # Approved translations have the format:
@@ -94,14 +103,17 @@ module CrowdIn
     # Failures can be:
     # 1) +CrowdIn::Client::Errors::Error+ if we fail to fetch the translation status of files
     # 2) +CrowdIn::FileMethods::FilesError+ if any individual files fail on export
-    def translations(language, batch_size = 500)
-      begin
-        # Get all file ids at once, since that is a single API call that is cached
-        # but fetch translations in batches and yield them to the caller.
-        file_ids = @client.files.map { |f| f['id'] }
-        file_ids.each_slice(batch_size) do |batch|
-          yield(translations_for_files(batch, language))
-        end
+    def translations(language,
+                     batch_size = 500,
+                     updated_at_cutoff = nil,
+                     city = nil)
+      # Get all file ids at once, since that is a single API call that is cached
+      #  but fetch translations in batches, filter some of them out optionally for
+      #  performance reasons and yield them to the caller.
+      file_ids = @client.files.filter_map { |f| f['id'] if should_include_file(f, updated_at_cutoff, city) }
+      file_ids.each_slice(batch_size) do |batch|
+        yield(translations_for_files(batch, language))
+      end
       rescue CrowdIn::Client::Errors::Error => e
         ReturnObject.new({}, e)
       end

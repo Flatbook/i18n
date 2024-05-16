@@ -31,7 +31,7 @@ module CrowdIn
     def files(hard_fetch = false)
       if @files_cache.empty? || hard_fetch
         path = "api/v2/projects/#{@project_id}/files"
-        @files_cache = with_pagination { |params| get_request(path, params) }
+        @files_cache = with_pagination { |params| get_request(path, params.merge({ orderBy: 'updatedAt desc' })) }
       end
       @files_cache
     end
@@ -40,7 +40,7 @@ module CrowdIn
     def directories(hard_fetch = false)
       if @directories_cache.empty? || hard_fetch
         path = "api/v2/projects/#{@project_id}/directories"
-        @directories_cache = with_pagination { |params| get_request(path, params) }
+        @directories_cache = with_pagination { |params| get_request(path, params.merge({ orderBy: 'updatedAt desc' })) }
       end
       @directories_cache
     end
