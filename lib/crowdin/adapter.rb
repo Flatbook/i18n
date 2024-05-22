@@ -114,9 +114,8 @@ module CrowdIn
       file_ids.each_slice(batch_size) do |batch|
         yield(translations_for_files(batch, language))
       end
-      rescue CrowdIn::Client::Errors::Error => e
-        ReturnObject.new({}, e)
-      end
+    rescue CrowdIn::Client::Errors::Error => e
+      ReturnObject.new({}, e)
     end
 
     # Given a language, fetch approved translations.
