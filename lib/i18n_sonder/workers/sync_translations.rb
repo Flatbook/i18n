@@ -4,7 +4,12 @@ module I18nSonder
 
       BATCH_SIZE = 500
 
-      def sync(approved_translations_only:, languages: nil)
+      def sync(
+        approved_translations_only:,
+        languages: nil,
+        updated_at_cutoff: nil,
+        city: nil
+      )
         localization_provider = I18nSonder.localization_provider
 
         successful_syncs = {}
@@ -30,7 +35,7 @@ module I18nSonder
               successful_syncs = process_translation_result(translation_result_batch, language, successful_syncs)
             end
           else
-            localization_provider.translations(language.to_s, BATCH_SIZE) do |translation_result_batch|
+            localization_provider.translations(language.to_s, BATCH_SIZE, updated_at_cutoff, city) do |translation_result_batch|
               successful_syncs = process_translation_result(translation_result_batch, language, successful_syncs)
             end
           end

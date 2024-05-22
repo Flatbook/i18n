@@ -13,8 +13,8 @@ module I18nSonder
         @logger = I18nSonder.logger
       end
 
-      def perform(languages = nil)
-        sync(approved_translations_only: false, languages: languages)
+      def perform(languages = nil, updated_at_cutoff = nil, city = nil)
+        sync(approved_translations_only: false, languages: languages, updated_at_cutoff: updated_at_cutoff, city: city)
       end
     end
   end
